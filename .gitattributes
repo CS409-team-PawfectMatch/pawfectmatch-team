@@ -1,0 +1,13 @@
+# Explicitly declare files to help GitHub understand the project structure
+
+# Backend - JavaScript
+server/**/*.js linguist-language=JavaScript
+
+# Frontend - TypeScript
+src/**/*.ts linguist-language=TypeScript
+src/**/*.tsx linguist-language=TypeScript
+
+# Configuration files
+*.json linguist-detectable=true
+*.md linguist-detectable=true
+

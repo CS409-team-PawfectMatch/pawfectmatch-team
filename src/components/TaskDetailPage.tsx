@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Star, MapPin, Clock, DollarSign, Shield, MessageCircle, ArrowLeft, Heart, CheckCircle2, Users } from "lucide-react";
+import { Star, MapPin, Clock, DollarSign, Shield, MessageCircle, ArrowLeft, Heart, Users, PawPrint } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { api } from "../lib/api";
 import { useUser } from "../hooks/useUser";
@@ -13,6 +13,7 @@ import { ApplicantsDialog } from "./ApplicantsDialog";
 interface TaskDetailPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
   taskId?: string;
+  returnTo?: string;
 }
 
 interface Task {
@@ -50,7 +51,7 @@ interface Task {
   }>;
 }
 
-export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
+export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -157,8 +158,6 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
 
   const isTaskOwner = task && user && task.postedBy?._id === user._id;
   const hasApplied = task?.applicants?.some(app => app._id === user?._id);
-  const isAssigned = task?.status === "in_progress" && task?.assignedTo;
-  const isCompleted = task?.status === "completed";
 
   if (loading) {
     return (
@@ -209,11 +208,17 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
         {/* Back Button */}
         <Button 
           variant="ghost" 
-          onClick={() => onNavigate('tasks')}
+          onClick={() => {
+            if (returnTo === 'owner-profile' || returnTo === 'helper-profile' || returnTo === 'profile') {
+              onNavigate(returnTo);
+            } else {
+              onNavigate('tasks');
+            }
+          }}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Tasks
+          {returnTo === 'owner-profile' || returnTo === 'helper-profile' || returnTo === 'profile' ? 'Back to My Tasks' : 'Back to Tasks'}
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -313,20 +318,6 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
               </Card>
             )}
 
-            {/* Assigned Helper Info */}
-            {isAssigned && task.assignedTo && (
-              <Card className="p-6 border-0 shadow-md border-blue-500/20 bg-blue-50/50">
-                <div className="flex items-center gap-4">
-                  <CheckCircle2 className="w-8 h-8 text-blue-500" />
-                  <div className="flex-1">
-                    <h4 className="mb-1" style={{ fontWeight: 600 }}>Assigned Helper</h4>
-                    <p className="text-muted-foreground">
-                      {task.assignedTo.name} has been assigned to this task
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            )}
           </div>
 
           {/* Sidebar */}
@@ -334,8 +325,15 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
             {/* Owner Info */}
             {task.postedBy && (
               <Card className="p-6 border-0 shadow-md">
+                <div className="flex items-center gap-2 mb-4">
+                  <Heart className="w-5 h-5 text-primary fill-primary" />
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Task Owner</h3>
+                </div>
                 <div className="flex items-center gap-4 mb-4">
-                  <Avatar className="w-16 h-16">
+                  <Avatar 
+                    className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id })}
+                  >
                     <AvatarImage src={task.postedBy.profilePhoto} alt={task.postedBy.name} />
                     <AvatarFallback className="bg-primary text-white">
                       {task.postedBy.name.substring(0, 2).toUpperCase()}
@@ -343,7 +341,13 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 style={{ fontWeight: 600 }}>{task.postedBy.name}</h4>
+                      <h4 
+                        style={{ fontWeight: 600 }}
+                        className="cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id })}
+                      >
+                        {task.postedBy.name}
+                      </h4>
                       <Shield className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex items-center gap-1">
@@ -357,6 +361,53 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
                   <Button 
                     className="flex-1 bg-primary hover:bg-primary/90 text-white"
                     onClick={() => onNavigate('messages', { selectedUserId: task.postedBy?._id })}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Helper Info - Show when task is assigned */}
+            {task.assignedTo && (
+              <Card className="p-6 border-0 shadow-md">
+                <div className="flex items-center gap-2 mb-4">
+                  <PawPrint className="w-5 h-5 text-primary" />
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Assigned Helper</h3>
+                </div>
+                <div className="flex items-center gap-4 mb-4">
+                  <Avatar 
+                    className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => onNavigate('helper-public-profile', { helperId: task.assignedTo?._id })}
+                  >
+                    <AvatarImage src={task.assignedTo.profilePhoto} alt={task.assignedTo.name} />
+                    <AvatarFallback className="bg-primary text-white">
+                      {task.assignedTo.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 
+                        style={{ fontWeight: 600 }}
+                        className="cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => onNavigate('helper-public-profile', { helperId: task.assignedTo?._id })}
+                      >
+                        {task.assignedTo.name}
+                      </h4>
+                      <Shield className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-sm" style={{ fontWeight: 600 }}>4.9</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1 bg-primary hover:bg-primary/90 text-white"
+                    onClick={() => onNavigate('messages', { selectedUserId: task.assignedTo?._id })}
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Message
@@ -415,24 +466,7 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
               </Card>
             )}
 
-            {/* Requirements */}
-            <Card className="p-6 border-0 shadow-md">
-              <h4 className="mb-3" style={{ fontWeight: 600 }}>Requirements</h4>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span className="text-muted-foreground">Experience with pets</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span className="text-muted-foreground">Reliable and punctual</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span className="text-muted-foreground">Must love animals!</span>
-                </li>
-              </ul>
-            </Card>
+
           </div>
         </div>
       </div>

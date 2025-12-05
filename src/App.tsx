@@ -88,7 +88,9 @@ function AppContent() {
     
     // Handle dynamic routes
     if (page === "task-detail" && params?.taskId) {
-      navigate(`/task/${params.taskId}`);
+      const returnTo = params?.returnTo;
+      const url = returnTo ? `/task/${params.taskId}?returnTo=${returnTo}` : `/task/${params.taskId}`;
+      navigate(url);
     } else if (page === "helper-public-profile" && (params?.userId || params?.helperId)) {
       const targetUserId = params?.userId || params?.helperId;
       navigate(`/helper/${targetUserId}`);
@@ -149,6 +151,12 @@ function AppContent() {
     if (location.pathname.startsWith("/task/")) {
       const taskId = location.pathname.split("/")[2];
       navigationParams.taskId = taskId;
+      // Extract returnTo from query string
+      const searchParams = new URLSearchParams(location.search);
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo) {
+        navigationParams.returnTo = returnTo;
+      }
     } else if (location.pathname.startsWith("/helper/")) {
       const userId = location.pathname.split("/")[2];
       navigationParams.userId = userId;
@@ -162,7 +170,7 @@ function AppContent() {
       case "find-helpers":
         return <FindHelpersPage onNavigate={handleNavigate} />;
       case "task-detail":
-        return <TaskDetailPage onNavigate={handleNavigate} taskId={navigationParams.taskId} />;
+        return <TaskDetailPage onNavigate={handleNavigate} taskId={navigationParams.taskId} returnTo={navigationParams.returnTo} />;
       case "post-task":
         return <PostTaskPage onNavigate={handleNavigate} />;
       case "messages":

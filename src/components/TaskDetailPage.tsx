@@ -13,6 +13,7 @@ import { ApplicantsDialog } from "./ApplicantsDialog";
 interface TaskDetailPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
   taskId?: string;
+  returnTo?: string;
 }
 
 interface Task {
@@ -50,7 +51,7 @@ interface Task {
   }>;
 }
 
-export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
+export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -207,11 +208,17 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
         {/* Back Button */}
         <Button 
           variant="ghost" 
-          onClick={() => onNavigate('tasks')}
+          onClick={() => {
+            if (returnTo === 'owner-profile' || returnTo === 'helper-profile' || returnTo === 'profile') {
+              onNavigate(returnTo);
+            } else {
+              onNavigate('tasks');
+            }
+          }}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Tasks
+          {returnTo === 'owner-profile' || returnTo === 'helper-profile' || returnTo === 'profile' ? 'Back to My Tasks' : 'Back to Tasks'}
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-8">

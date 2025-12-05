@@ -685,7 +685,7 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                                 variant="outline" 
                                 size="sm" 
                                 className="hover:bg-primary/10 hover:border-primary hover:text-primary"
-                                onClick={() => onNavigate('task-detail', { taskId: task._id })}
+                                onClick={() => onNavigate('task-detail', { taskId: task._id, returnTo: 'profile' })}
                               >
                                 View
                               </Button>

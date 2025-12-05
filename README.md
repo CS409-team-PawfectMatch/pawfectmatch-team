@@ -1,6 +1,5 @@
 # PawfectMatch
 
-This is a code bundle for PawfectMatch. The original project is available at https://www.figma.com/design/NjDv4p6RUoi3fdg1imc6wj/PawfectMatch-Web-App-Design.
 
 ## Project Structure
 

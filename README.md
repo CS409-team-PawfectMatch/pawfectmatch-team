@@ -1,5 +1,6 @@
 # PawfectMatch
 
+A platform connecting pet owners with trusted local helpers for safe, loving pet care.
 
 ## Project Structure
 
@@ -19,6 +20,16 @@
 - **Location**: `src/` directory
 - **Technology**: React + TypeScript + Vite
 - **Language**: TypeScript (`.tsx` and `.ts` files)
+
+## Environment Setup
+
+**Important**: Create a `.env` file in the `server/` directory with the following variables:
+
+```env
+MONGODB_URI=your_mongodb_connection_string_here
+JWT_SECRET=your_jwt_secret_key_here
+PORT=3001
+```
 
 ## Running the code
 

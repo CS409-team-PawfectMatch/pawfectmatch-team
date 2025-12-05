@@ -406,7 +406,7 @@ export function TaskDetailPage({ onNavigate, taskId }: TaskDetailPageProps) {
                 </p>
                 <Button 
                   size="lg"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
                   onClick={handleCompleteTask}
                   disabled={completing}
                 >

@@ -245,11 +245,11 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
           {returnTo === 'owner-profile' || returnTo === 'helper-profile' || returnTo === 'profile' ? 'Back to My Tasks' : 'Back to Tasks'}
         </Button>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Task Header */}
-            <Card className="p-6 border-0 shadow-md">
+        <div className="space-y-6">
+          {/* First Row: Task Information + Owner Info */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Task Information - Takes 2 columns */}
+            <Card className="lg:col-span-2 p-6 border-0 shadow-md h-full flex flex-col">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -310,7 +310,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                 </div>
               </div>
 
-              <div>
+              <div className="flex-1">
                 <h3 className="mb-3" style={{ fontWeight: 600 }}>Task Description</h3>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {task.description || "No description provided."}
@@ -318,37 +318,9 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
               </div>
             </Card>
 
-            {/* Pet Information */}
-            {task.pet && (
-              <Card className="p-6 border-0 shadow-md">
-                <h3 className="mb-4" style={{ fontWeight: 600 }}>Pet Information</h3>
-                <div className="flex gap-6">
-                  <div className="w-32 h-32 rounded-2xl overflow-hidden shrink-0">
-                    <ImageWithFallback
-                      src={petImage}
-                      alt={task.pet.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <h4 style={{ fontWeight: 600 }}>{task.pet.name}</h4>
-                      <p className="text-muted-foreground">
-                        {task.pet.breed || task.pet.type}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Owner Info */}
+            {/* Owner Info - Takes 1 column */}
             {task.postedBy && (
-              <Card className="p-6 border-0 shadow-md">
+              <Card className="p-6 border-0 shadow-md h-full flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                   <Heart className="w-5 h-5 text-primary fill-primary" />
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Task Owner</h3>
@@ -381,7 +353,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <Button 
                     className="flex-1 bg-primary hover:bg-primary/90 text-white"
                     onClick={() => onNavigate('messages', { selectedUserId: task.postedBy?._id })}
@@ -392,10 +364,37 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                 </div>
               </Card>
             )}
+          </div>
 
-            {/* Helper Info - Show when task is assigned */}
+          {/* Second Row: Pet Information + Helper Info */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Pet Information - Takes 2 columns */}
+            {task.pet && (
+              <Card className="lg:col-span-2 p-6 border-0 shadow-md h-full flex flex-col">
+                <h3 className="mb-4" style={{ fontWeight: 600 }}>Pet Information</h3>
+                <div className="flex gap-6 flex-1">
+                  <div className="w-32 h-32 rounded-2xl overflow-hidden shrink-0">
+                    <ImageWithFallback
+                      src={petImage}
+                      alt={task.pet.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h4 style={{ fontWeight: 600 }}>{task.pet.name}</h4>
+                      <p className="text-muted-foreground">
+                        {task.pet.breed || task.pet.type}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Helper Info - Takes 1 column */}
             {task.assignedTo && (
-              <Card className="p-6 border-0 shadow-md">
+              <Card className="p-6 border-0 shadow-md h-full flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                   <PawPrint className="w-5 h-5 text-primary" />
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Assigned Helper</h3>
@@ -428,7 +427,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <Button 
                     className="flex-1 bg-primary hover:bg-primary/90 text-white"
                     onClick={() => onNavigate('messages', { selectedUserId: task.assignedTo?._id })}
@@ -440,8 +439,43 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
               </Card>
             )}
 
-            {/* Apply Card - Show for helpers */}
-            {isHelper() && !isTaskOwner && task.status === "open" && (
+            {/* Apply Card - Show for helpers when no helper assigned */}
+            {isHelper() && !isTaskOwner && task.status === "open" && !task.assignedTo && (
+              <Card className="p-6 border-0 shadow-md bg-secondary/20 h-full flex flex-col">
+                <h3 className="mb-4" style={{ fontWeight: 600 }}>Apply for this Task</h3>
+                <div className="space-y-4 flex-1">
+                  <div className="bg-white p-4 rounded-xl">
+                    <div className="text-sm text-muted-foreground mb-1">You'll earn</div>
+                    <div className="text-primary" style={{ fontWeight: 700, fontSize: '36px' }}>{rewardDisplay}</div>
+                    <div className="text-sm text-muted-foreground">per session</div>
+                  </div>
+                  <Button 
+                    size="lg" 
+                    className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                    onClick={handleApply}
+                    disabled={applying || hasApplied}
+                  >
+                    {applying ? 'Applying...' : hasApplied ? 'Already Applied' : 'Apply Now'}
+                  </Button>
+                  {hasApplied && (
+                    <p className="text-xs text-center text-primary">
+                      Your application has been submitted
+                    </p>
+                  )}
+                  {!hasApplied && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      You'll be able to chat with the owner after applying
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Third Row: Task Status - Full Width */}
+          <div>
+            {/* Apply Card - Show for helpers when helper is assigned */}
+            {isHelper() && !isTaskOwner && task.status === "open" && task.assignedTo && (
               <Card className="p-6 border-0 shadow-md bg-secondary/20">
                 <h3 className="mb-4" style={{ fontWeight: 600 }}>Apply for this Task</h3>
                 <div className="space-y-4">
@@ -472,42 +506,46 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
               </Card>
             )}
 
-            {/* Complete Task Button - Show for owner when in progress */}
-            {isTaskOwner && task.status === "in_progress" && (
-              <Card className="p-6 border-0 shadow-md bg-green-50/50">
-                <h3 className="mb-4" style={{ fontWeight: 600 }}>Task Status</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  This task is in progress. Mark it as completed when the helper finishes.
-                </p>
-                <Button 
-                  size="lg"
-                  className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
-                  onClick={handleCompleteTask}
-                  disabled={completing}
-                >
-                  {completing ? 'Completing...' : 'Complete Task'}
-                </Button>
-              </Card>
-            )}
-
             {/* Review Button - Show for owner or helper when completed */}
-            {((isTaskOwner || isTaskHelper) && task.status === "completed") && (
-              <Card className="p-6 border-0 shadow-md bg-gray-50/50">
-                <h3 className="mb-4" style={{ fontWeight: 600 }}>Task Status</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  This task has been completed.
-                </p>
-                <Button 
-                  size="lg"
-                  className="w-full !bg-primary hover:!bg-primary/90 !text-white"
-                  onClick={() => setReviewDialogOpen(true)}
-                >
-                  Click to Review
-                </Button>
+            {((isTaskOwner || isTaskHelper)) && (
+              <Card className="p-4 border-0 shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="mb-0" style={{ fontWeight: 600 }}>Task Status</h3>
+                  <Badge 
+                    className={
+                      task.status === 'open' 
+                        ? 'bg-accent !text-white border-transparent' 
+                        : task.status === 'in_progress'
+                        ? 'bg-chart-5 !text-white border-transparent'
+                        : task.status === 'completed'
+                        ? 'bg-primary !text-white border-transparent'
+                        : 'bg-secondary !text-secondary-foreground border-transparent'
+                    }
+                  >
+                    {task.status?.replace(/_/g, ' ') || 'unknown'}
+                  </Badge>
+                </div>
+                {task.status === "in_progress" && isTaskOwner && (
+                  <Button 
+                    size="lg"
+                    className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
+                    onClick={handleCompleteTask}
+                    disabled={completing}
+                  >
+                    {completing ? 'Completing...' : 'Complete Task'}
+                  </Button>
+                )}
+                {task.status === "completed" && (
+                  <Button 
+                    size="lg"
+                    className="w-full !bg-primary hover:!bg-primary/90 !text-white"
+                    onClick={() => setReviewDialogOpen(true)}
+                  >
+                    Click to Review
+                  </Button>
+                )}
               </Card>
             )}
-
-
           </div>
         </div>
       </div>

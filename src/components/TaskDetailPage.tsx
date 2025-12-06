@@ -540,7 +540,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                 )}
                 
                 {/* Non-owner: Apply button */}
-                {!isTaskOwner && isAuthenticated && task.status === "open" &&(
+                {!isTaskOwner && isAuthenticated &&(
                   <div className="mt-auto space-y-4">
                     <div className="bg-secondary/20 p-4 rounded-xl">
                       <div className="text-sm text-muted-foreground mb-1">You'll earn</div>

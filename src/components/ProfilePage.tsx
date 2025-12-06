@@ -560,7 +560,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                 </div>
               ) : (
                 // Owner Stats
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -595,6 +595,19 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                           {user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear()}
                         </div>
                         <div className="text-xs text-muted-foreground">Member Since</div>
+                      </div>
+                    </div>
+                  </Card>
+                  <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center">
+                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                      </div>
+                      <div>
+                        <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>
+                          {user?.ownerRating && user.ownerRating > 0 ? user.ownerRating.toFixed(1) : '—'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Rating</div>
                       </div>
                     </div>
                   </Card>

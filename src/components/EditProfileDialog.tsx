@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Upload, Camera } from "lucide-react";
+import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 
@@ -20,16 +20,23 @@ interface EditProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profileData: ProfileData;
-  onSave: (data: ProfileData) => void;
+  onSave: (data: ProfileData) => Promise<void>;
 }
 
 export function EditProfileDialog({ open, onOpenChange, profileData, onSave }: EditProfileDialogProps) {
   const [formData, setFormData] = useState<ProfileData>(profileData);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    try {
+      await onSave(formData);
+      // Close dialog after successful save
+      onOpenChange(false);
+    } catch (error) {
+      // Error handling is done in onSave, just keep dialog open
+      console.error('Error saving profile:', error);
+    }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,17 +115,6 @@ export function EditProfileDialog({ open, onOpenChange, profileData, onSave }: E
                 />
               </label>
             </div>
-            <Button type="button" variant="outline" size="sm" disabled={isUploading}>
-              <Upload className="w-4 h-4 mr-2" />
-              {isUploading ? "Uploading..." : "Change Photo"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={isUploading}
-              />
-            </Button>
           </div>
 
           {/* Username */}

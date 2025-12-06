@@ -236,35 +236,34 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
   const myTasks = userType === 'owner' ? postedTasks : assignedTasks;
 
   const handleSaveProfile = async (data: ProfileData) => {
-    if (!user || !user._id) return;
+    if (!user || !user._id) {
+      throw new Error('User not found');
+    }
     
-    try {
-      // Prepare data for update
-      const updateData = {
-        name: data.username,
-        bio: data.bio,
-        profilePhoto: data.profilePhoto
-      };
+    // Prepare data for update
+    const updateData = {
+      name: data.username,
+      bio: data.bio,
+      profilePhoto: data.profilePhoto
+    };
+    
+    // Call API to update user profile
+    const response = await api.put(`/users/${user._id}`, updateData);
+    
+    if (response.success && response.data) {
+      // Update user context with new data
+      setUser({
+        ...user,
+        name: response.data.name,
+        bio: response.data.bio,
+        profilePhoto: response.data.profilePhoto
+      });
       
-      // Call API to update user profile
-      const response = await api.put(`/users/${user._id}`, updateData);
-      
-      if (response.success && response.data) {
-        // Update user context with new data
-        setUser({
-          ...user,
-          name: response.data.name,
-          bio: response.data.bio,
-          profilePhoto: response.data.profilePhoto
-        });
-        
-        toast.success("Profile updated successfully!");
-      } else {
-        toast.error(response.message || "Failed to update profile");
-      }
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast.error("Failed to update profile. Please try again.");
+      toast.success("Profile updated successfully!");
+    } else {
+      const errorMessage = response.message || "Failed to update profile";
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 

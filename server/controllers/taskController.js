@@ -295,7 +295,7 @@ export const assignHelper = async (req, res) => {
   }
 };
 
-// Complete task (helper only) - marks task as pending_completion
+// Complete task (helper only) - marks task as pending_confirmation
 export const completeTask = async (req, res) => {
   try {
     const { id } = req.params;
@@ -326,8 +326,8 @@ export const completeTask = async (req, res) => {
       });
     }
 
-    // Update status to pending_completion
-    task.status = 'pending_completion';
+    // Update status to pending_confirmation
+    task.status = 'pending_confirmation';
     await task.save();
 
     // Populate and return updated task
@@ -372,11 +372,11 @@ export const confirmTask = async (req, res) => {
       });
     }
 
-    // Check if task is pending_completion
-    if (task.status !== 'pending_completion') {
+    // Check if task is pending_confirmation
+    if (task.status !== 'pending_confirmation') {
       return res.status(400).json({
         success: false,
-        message: 'Task must be pending completion to be confirmed',
+        message: 'Task must be pending confirmation to be confirmed',
       });
     }
 

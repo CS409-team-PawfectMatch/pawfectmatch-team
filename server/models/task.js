@@ -78,7 +78,7 @@ const taskSchema = new mongoose.Schema(
     // Status and management
     status: {
       type: String,
-      enum: ['open', 'pending', 'in_progress', 'pending_completion', 'completed', 'cancelled'],
+      enum: ['open', 'pending', 'in_progress', 'pending_confirmation', 'completed', 'cancelled'],
       default: 'open',
     },
     applicants: [{

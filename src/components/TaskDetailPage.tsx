@@ -415,13 +415,13 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                         task.status === 'open' ? 'bg-green-500' :
                         task.status === 'pending' ? 'bg-blue-500' :
                         task.status === 'in_progress' ? 'bg-blue-500' :
-                        task.status === 'pending_completion' ? 'bg-yellow-500' :
+                        task.status === 'pending_confirmation' ? 'bg-yellow-500' :
                         task.status === 'completed' ? 'bg-gray-500' :
                         'bg-primary'
                       } text-white`}
                       style={{ fontWeight: 600 }}
                     >
-                      {task.status === 'open' && isHelper() ? 'pending' : task.status === 'pending_completion' ? 'pending completion' : task.status === 'open' ? task.status : task.status.replace(/_/g, ' ')}
+                      {task.status === 'open' && isHelper() ? 'pending' : task.status === 'pending_confirmation' ? 'pending confirmation' : task.status === 'open' ? task.status : task.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
                   <Badge className="bg-primary text-white" style={{ fontWeight: 600 }}>{typeDisplay}</Badge>
@@ -736,14 +736,14 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                           ? 'bg-blue-500 !text-white border-transparent'
                           : task.status === 'in_progress'
                           ? 'bg-chart-5 !text-white border-transparent'
-                          : task.status === 'pending_completion'
+                          : task.status === 'pending_confirmation'
                           ? 'bg-yellow-500 !text-white border-transparent'
                           : task.status === 'completed'
                           ? 'bg-primary !text-white border-transparent'
                           : 'bg-secondary !text-secondary-foreground border-transparent'
                       }
                     >
-                      {task.status === 'pending_completion' ? 'pending completion' : task.status?.replace(/_/g, ' ') || 'unknown'}
+                      {task.status === 'pending_confirmation' ? 'pending confirmation' : task.status?.replace(/_/g, ' ') || 'unknown'}
                     </Badge>
                   </div>
                   {/* Helper can complete task when in progress */}
@@ -757,8 +757,8 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                       {completing ? 'Completing...' : 'Complete Task'}
                     </Button>
                   )}
-                  {/* Owner can confirm task when pending completion */}
-                  {task.status === "pending_completion" && isTaskOwner && (
+                  {/* Owner can confirm task when pending confirmation */}
+                  {task.status === "pending_confirmation" && isTaskOwner && (
                     <Button 
                       size="lg"
                       className="w-full !bg-green-600 hover:!bg-green-700 !text-white"

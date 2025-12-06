@@ -658,7 +658,7 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                       </div>
                       <div>
                         <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {postedTasks.filter(t => t.status === 'open' || t.status === 'pending' || t.status === 'in_progress' || t.status === 'pending_completion').length}
+                          {postedTasks.filter(t => t.status === 'open' || t.status === 'pending' || t.status === 'in_progress' || t.status === 'pending_confirmation').length}
                         </div>
                         <div className="text-xs text-muted-foreground">Active Tasks</div>
                       </div>
@@ -855,7 +855,7 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                                         ? 'bg-chart-6 !text-white border-transparent'
                                         : task.status.trim() === 'in_progress'
                                         ? 'bg-chart-5 !text-white border-transparent'
-                                        : task.status.trim() === 'pending_completion'
+                                        : task.status.trim() === 'pending_confirmation'
                                         ? 'bg-chart-7 !text-white border-transparent'
                                         : task.status.trim() === 'completed'
                                         ? 'bg-primary !text-white border-transparent'
@@ -866,8 +866,8 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                                       ? 'open' 
                                       : task.status.trim() === 'pending'
                                       ? 'pending'
-                                      : task.status.trim() === 'pending_completion' 
-                                      ? 'pending completion' 
+                                      : task.status.trim() === 'pending_confirmation' 
+                                      ? 'pending confirmation' 
                                       : task.status.replace(/_/g, ' ')}
                                   </Badge>
                                 )}
@@ -885,7 +885,7 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                                       {applicantsCount} application{applicantsCount !== 1 ? 's' : ''} received
                                     </button>
                                   )}
-                                  {task.status === 'pending_completion' && (
+                                  {task.status === 'pending_confirmation' && (
                                     <p className="text-sm text-yellow-600 flex items-center gap-2">
                                       <Clock className="w-4 h-4" />
                                       Waiting for your confirmation

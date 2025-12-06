@@ -27,7 +27,7 @@ router.post('/:id/apply', verifyToken, requireRole('helper'), applyToTask);
 // POST /api/tasks/:id/assign - Assign helper to task (owner only)
 router.post('/:id/assign', verifyToken, requireRole('owner'), assignHelper);
 
-// POST /api/tasks/:id/complete - Complete task (helper only) - marks as pending_completion
+// POST /api/tasks/:id/complete - Complete task (helper only) - marks as pending_confirmation
 router.post('/:id/complete', verifyToken, requireRole('helper'), completeTask);
 
 // POST /api/tasks/:id/confirm - Confirm task completion (owner only) - marks as completed

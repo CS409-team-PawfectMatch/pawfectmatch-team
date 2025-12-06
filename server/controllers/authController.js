@@ -9,6 +9,29 @@ const generateToken = (payload) => {
   });
 };
 
+// Password validation function
+const validatePassword = (password) => {
+  if (!password) return { valid: false, message: 'Password is required' };
+  
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long' };
+  }
+  
+  if (!/\d/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number' };
+  }
+  
+  if (!/[a-zA-Z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one letter' };
+  }
+  
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one special character' };
+  }
+  
+  return { valid: true };
+};
+
 // Register new user
 export const register = async (req, res) => {
   try {
@@ -19,6 +42,15 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide name, email, and password',
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message,
       });
     }
 

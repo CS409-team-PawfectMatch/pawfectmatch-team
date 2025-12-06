@@ -1,15 +1,22 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Heart, User, PawPrint, ArrowLeft } from "lucide-react";
+import { Heart, User, PawPrint, ArrowLeft, Check, X } from "lucide-react";
 import { api } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { toast } from "sonner";
 
 interface AuthPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
+}
+
+interface PasswordValidation {
+  minLength: boolean;
+  hasNumber: boolean;
+  hasLetter: boolean;
+  hasSpecialChar: boolean;
 }
 
 export function AuthPage({ onNavigate }: AuthPageProps) {
@@ -21,7 +28,27 @@ export function AuthPage({ onNavigate }: AuthPageProps) {
     email: '',
     password: '',
   });
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
+    minLength: false,
+    hasNumber: false,
+    hasLetter: false,
+    hasSpecialChar: false,
+  });
   const { login } = useUser();
+
+  // 密码验证函数
+  const validatePassword = (password: string): PasswordValidation => {
+    return {
+      minLength: password.length >= 8,
+      hasNumber: /\d/.test(password),
+      hasLetter: /[a-zA-Z]/.test(password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    };
+  };
+
+  const isPasswordValid = (validation: PasswordValidation): boolean => {
+    return validation.minLength && validation.hasNumber && validation.hasLetter && validation.hasSpecialChar;
+  };
 
   const toggleRole = (role: string) => {
     if (selectedRole.includes(role)) {
@@ -33,6 +60,12 @@ export function AuthPage({ onNavigate }: AuthPageProps) {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev: { name: string; email: string; password: string }) => ({ ...prev, [field]: value }));
+    
+    // 如果是密码字段且不是登录模式，进行实时验证
+    if (field === 'password' && !isLogin) {
+      const validation = validatePassword(value);
+      setPasswordValidation(validation);
+    }
   };
 
   const handleLogin = async () => {
@@ -66,6 +99,13 @@ export function AuthPage({ onNavigate }: AuthPageProps) {
   const handleRegister = async () => {
     if (!formData.name || !formData.email || !formData.password) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    // 验证密码强度
+    const validation = validatePassword(formData.password);
+    if (!isPasswordValid(validation)) {
+      toast.error('Password does not meet requirements. Please check the password requirements below.');
       return;
     }
 
@@ -194,6 +234,47 @@ export function AuthPage({ onNavigate }: AuthPageProps) {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('password', e.target.value)}
                   required
                 />
+                {!isLogin && formData.password && (
+                  <div className="mt-2 space-y-1.5 text-sm">
+                    <p className="text-muted-foreground mb-2" style={{ fontWeight: 500 }}>
+                      Password requirements:
+                    </p>
+                    <div className="space-y-1">
+                      <div className={`flex items-center gap-2 ${passwordValidation.minLength ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {passwordValidation.minLength ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {passwordValidation.hasNumber ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
+                        <span>At least one number</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasLetter ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {passwordValidation.hasLetter ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
+                        <span>At least one letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {passwordValidation.hasSpecialChar ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
+                        <span>At least one special character (!@#$%^&*...)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {!isLogin && (
@@ -242,7 +323,7 @@ export function AuthPage({ onNavigate }: AuthPageProps) {
               <Button 
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-white"
-                disabled={loading}
+                disabled={loading || (!isLogin && formData.password && !isPasswordValid(passwordValidation))}
               >
                 {loading ? 'Loading...' : (isLogin ? 'Log In' : 'Create Account')}
               </Button>

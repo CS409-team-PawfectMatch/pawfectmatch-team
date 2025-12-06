@@ -91,7 +91,7 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
         setPets(response.data);
         if (response.data.length === 0) {
           toast.error("You need to add a pet first before posting a task");
-          setTimeout(() => onNavigate('profile', { userType: 'owner' }), 2000);
+          setTimeout(() => onNavigate('owner-profile'), 2000);
         }
       } else {
         toast.error("Failed to load pets");
@@ -101,6 +101,20 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
     } finally {
       setLoadingPets(false);
     }
+  };
+
+  // Format reward to ensure only one dollar sign
+  const formatReward = (value: string): string => {
+    // Remove all dollar signs and non-numeric characters except decimal point
+    const numericValue = value.replace(/[^0-9.]/g, '');
+    return numericValue;
+  };
+
+  // Display reward with single dollar sign
+  const displayReward = (value: string): string => {
+    if (!value) return '';
+    const numericValue = formatReward(value);
+    return numericValue ? `$${numericValue}` : '';
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -121,13 +135,18 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
 
     setLoading(true);
     try {
+      // Format reward: remove $ signs and ensure single $ in display
+      const rewardValue = formData.reward || formData.budget || '0';
+      const numericReward = formatReward(rewardValue);
+      const formattedReward = `$${numericReward}`;
+      
       const taskData = {
         title: formData.title,
         type: formData.type,
         description: formData.description || '',
         location: formData.location,
-        reward: formData.reward || `$${formData.budget}`,
-        budget: formData.budget ? Number(formData.budget) : Number(formData.reward?.replace('$', '') || 0),
+        reward: formattedReward,
+        budget: Number(numericReward) || 0,
         pet: formData.pet,
         date: formData.date || new Date().toISOString(),
         time: formData.time || '',
@@ -170,7 +189,7 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
       <div className="min-h-screen pt-24 pb-24 px-4 flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="text-muted-foreground mb-4">You need to add a pet first before posting a task.</div>
-          <Button onClick={() => onNavigate('profile', { userType: 'owner' })}>
+          <Button onClick={() => onNavigate('owner-profile')}>
             Go to Profile
           </Button>
         </div>
@@ -245,7 +264,7 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="type">Service Type *</Label>
-                <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
+                <Select value={formData.type} onValueChange={(value: string) => handleInputChange('type', value)}>
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Select service type" />
                   </SelectTrigger>
@@ -315,7 +334,7 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
               
               <div className="space-y-2">
                 <Label htmlFor="pet">Select a Pet *</Label>
-                <Select value={formData.pet} onValueChange={(value) => handleInputChange('pet', value)}>
+                <Select value={formData.pet} onValueChange={(value: string) => handleInputChange('pet', value)}>
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Select your pet" />
                   </SelectTrigger>
@@ -396,25 +415,26 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="reward">Reward Amount *</Label>
-                <Input 
-                  id="reward"
-                  type="text"
-                  placeholder="e.g., $25 or 25"
-                  className="bg-white"
-                  value={formData.reward}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    handleInputChange('reward', value);
-                    // Also set budget if it's a number
-                    const numValue = value.replace('$', '');
-                    if (!isNaN(Number(numValue)) && numValue) {
-                      handleInputChange('budget', numValue);
-                    }
-                  }}
-                  required
-                />
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10">$</span>
+                  <Input 
+                    id="reward"
+                    type="text"
+                    placeholder=""
+                    className="bg-white pl-7"
+                    value={formatReward(formData.reward || formData.budget || '')}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Only allow numbers and decimal point
+                      const numericValue = value.replace(/[^0-9.]/g, '');
+                      handleInputChange('reward', numericValue);
+                      handleInputChange('budget', numericValue);
+                    }}
+                    required
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Set a fair price for the service (e.g., $25)
+                  Set a fair price for the service (e.g., 25)
                 </p>
               </div>
 
@@ -438,7 +458,7 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Reward</span>
                     <span className="text-primary" style={{ fontWeight: 700 }}>
-                      {formData.reward || formData.budget ? (formData.reward || `$${formData.budget}`) : 'Not set'}
+                      {displayReward(formData.reward || formData.budget || '') || 'Not set'}
                     </span>
                   </div>
                 </div>

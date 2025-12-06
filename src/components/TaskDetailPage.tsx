@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Star, MapPin, Clock, DollarSign, Shield, MessageCircle, ArrowLeft, Heart, Users, PawPrint } from "lucide-react";
+import { Star, MapPin, Clock, Banknote, Shield, MessageCircle, ArrowLeft, Heart, Users, PawPrint } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { api } from "../lib/api";
 import { useUser } from "../hooks/useUser";
@@ -59,7 +59,6 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
-  const [assigning, setAssigning] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [applicantsDialogOpen, setApplicantsDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -75,7 +74,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
     createdAt: string;
     reviewerName: string;
   } | null>(null);
-  const { user, isOwner, isHelper, isAuthenticated } = useUser();
+  const { user, isHelper, isAuthenticated } = useUser();
 
   useEffect(() => {
     if (taskId) {
@@ -224,7 +223,6 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
   const handleAssignHelper = async (helperId: string) => {
     if (!taskId) return;
 
-    setAssigning(true);
     try {
       const response = await api.post(`/tasks/${taskId}/assign`, { helperId });
       if (response.success) {
@@ -236,8 +234,6 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
       }
     } catch (error) {
       toast.error("Failed to assign helper");
-    } finally {
-      setAssigning(false);
     }
   };
 
@@ -248,13 +244,32 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
     try {
       const response = await api.post(`/tasks/${taskId}/complete`, {});
       if (response.success) {
-        toast.success("Task marked as completed!");
+        toast.success("Task marked as complete! Waiting for owner confirmation.");
         loadTask(); // Reload task to update status
       } else {
         toast.error(response.message || "Failed to complete task");
       }
     } catch (error) {
       toast.error("Failed to complete task");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleConfirmTask = async () => {
+    if (!taskId) return;
+
+    setCompleting(true);
+    try {
+      const response = await api.post(`/tasks/${taskId}/confirm`, {});
+      if (response.success) {
+        toast.success("Task confirmed as completed!");
+        loadTask(); // Reload task to update status
+      } else {
+        toast.error(response.message || "Failed to confirm task");
+      }
+    } catch (error) {
+      toast.error("Failed to confirm task");
     } finally {
       setCompleting(false);
     }
@@ -321,7 +336,20 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
 
   const petImage = task?.pet?.photos?.[0] ?? "https://placehold.co/600x400?text=No+Pet+Photo";
 
-  const rewardDisplay = task.reward || (task.budget ? `$${task.budget}` : '$0');
+  // Format reward to ensure only one dollar sign
+  const formatRewardDisplay = (reward?: string, budget?: number): string => {
+    if (reward) {
+      // Remove all $ signs and add one
+      const numericValue = reward.replace(/[^0-9.]/g, '');
+      return numericValue ? `$${numericValue}` : '$0';
+    }
+    if (budget) {
+      return `$${budget}`;
+    }
+    return '$0';
+  };
+  
+  const rewardDisplay = formatRewardDisplay(task.reward, task.budget);
   const timeDisplay = task.time || (task.date ? new Date(task.date).toLocaleDateString() : 'Flexible');
   const typeDisplay = task.type ? task.type.charAt(0).toUpperCase() + task.type.slice(1) : 'Task';
 
@@ -387,13 +415,15 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                     <Badge 
                       className={`${
                         task.status === 'open' ? 'bg-green-500' :
+                        task.status === 'pending' ? 'bg-blue-500' :
                         task.status === 'in_progress' ? 'bg-blue-500' :
+                        task.status === 'pending_confirmation' ? 'bg-yellow-500' :
                         task.status === 'completed' ? 'bg-gray-500' :
                         'bg-primary'
                       } text-white`}
                       style={{ fontWeight: 600 }}
                     >
-                      {task.status === 'open' && isHelper() ? 'pending' : task.status === 'open' ? task.status : task.status.replace('_', ' ')}
+                      {task.status === 'open' && isHelper() ? 'pending' : task.status === 'pending_confirmation' ? 'pending confirmation' : task.status === 'open' ? task.status : task.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
                   <Badge className="bg-primary text-white" style={{ fontWeight: 600 }}>{typeDisplay}</Badge>
@@ -421,7 +451,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-primary" />
+                    <Banknote className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Reward</div>
@@ -515,15 +545,21 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
             )}
 
             {/* Right column content - depends on task status */}
-            {task.status === "open" ? (
+            {(task.status === "open" || task.status === "pending") ? (
               /* Task Status Card - Always show when status is open */
               <Card className="p-4 border-0 shadow-md flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="mb-0" style={{ fontWeight: 600 }}>Task Status</h3>
                   <Badge 
-                    className="bg-accent !text-white border-transparent"
+                    className={
+                      task.status === 'open'
+                        ? 'bg-accent !text-white border-transparent'
+                        : task.status === 'pending'
+                        ? 'bg-chart-6 !text-white border-transparent'
+                        : 'bg-accent !text-white border-transparent'
+                    }
                   >
-                    {task.status?.replace(/_/g, ' ') || 'unknown'}
+                    {task.status === 'open' ? 'open' : task.status === 'pending' ? 'pending' : task.status?.replace(/_/g, ' ') || 'unknown'}
                   </Badge>
                 </div>
                 
@@ -654,8 +690,8 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
             )}
           </div>
 
-          {/* Third Row: Task Status / Apply Card - Full Width (only when status is not open) */}
-          {task.status !== "open" && (
+          {/* Third Row: Task Status / Apply Card - Full Width (only when status is not open or pending) */}
+          {task.status !== "open" && task.status !== "pending" && (
             <div>
               {/* Task Status - Show for owner or helper when status is not open */}
               {((isTaskOwner || isTaskHelper)) && (
@@ -664,17 +700,24 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                     <h3 className="mb-0" style={{ fontWeight: 600 }}>Task Status</h3>
                     <Badge 
                       className={
-                        task.status === 'in_progress'
+                        task.status === 'open'
+                          ? 'bg-green-500 !text-white border-transparent'
+                          : task.status === 'pending'
+                          ? 'bg-blue-500 !text-white border-transparent'
+                          : task.status === 'in_progress'
                           ? 'bg-chart-5 !text-white border-transparent'
+                          : task.status === 'pending_confirmation'
+                          ? 'bg-yellow-500 !text-white border-transparent'
                           : task.status === 'completed'
                           ? 'bg-primary !text-white border-transparent'
                           : 'bg-secondary !text-secondary-foreground border-transparent'
                       }
                     >
-                      {task.status?.replace(/_/g, ' ') || 'unknown'}
+                      {task.status === 'pending_confirmation' ? 'pending confirmation' : task.status?.replace(/_/g, ' ') || 'unknown'}
                     </Badge>
                   </div>
-                  {task.status === "in_progress" && isTaskOwner && (
+                  {/* Helper can complete task when in progress */}
+                  {task.status === "in_progress" && isTaskHelper && (
                     <Button 
                       size="lg"
                       className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
@@ -682,6 +725,17 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                       disabled={completing}
                     >
                       {completing ? 'Completing...' : 'Complete Task'}
+                    </Button>
+                  )}
+                  {/* Owner can confirm task when pending confirmation */}
+                  {task.status === "pending_confirmation" && isTaskOwner && (
+                    <Button 
+                      size="lg"
+                      className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
+                      onClick={handleConfirmTask}
+                      disabled={completing}
+                    >
+                      {completing ? 'Confirming...' : 'Confirm Completion'}
                     </Button>
                   )}
                   {task.status === "completed" && (

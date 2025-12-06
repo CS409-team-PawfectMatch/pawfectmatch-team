@@ -4,7 +4,11 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Star, MapPin, Shield, Edit, Heart, MessageCircle, Calendar, CheckCircle2, TrendingUp, Clock, PawPrint, Award, Briefcase, ArrowLeft } from "lucide-react";
+import {
+  Star, MapPin, Shield, Edit, Heart, MessageCircle, Calendar,
+  CheckCircle2, TrendingUp, Clock, PawPrint, Award, Briefcase,
+  ArrowLeft, PlusCircle
+} from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { EmptyState } from "./EmptyState";
 import { EditProfileDialog } from "./EditProfileDialog";
@@ -118,9 +122,11 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
   const [loadingPets, setLoadingPets] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pets' | 'tasks' | 'reviews'>('tasks');
+  const [addingRole, setAddingRole] = useState(false); // 新增状态用于跟踪角色添加过程
   const [activeTab, setActiveTab] = useState<'pets' | 'tasks' | 'reviews'>(initialActiveTab || 'tasks');
   const hasRefreshedUser = useRef(false);
-  
+
   // Update activeTab when initialActiveTab prop changes
   useEffect(() => {
     if (initialActiveTab) {
@@ -200,7 +206,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
           // Continue even if refresh fails
         }
       }
-      
+
       // Load tasks by default since activeTab starts as 'tasks'
       await loadTasks();
       setLoading(false);
@@ -224,8 +230,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
         loadPets();
       }
     } else if (activeTab === 'tasks') {
-      // Load tasks when tasks tab is activated (only if not already loaded)
-      if (myTasks.length === 0 && !loadingTasks) {
+      // Always refresh tasks when tasks tab is activated to show latest status
+      if (!loadingTasks) {
         loadTasks();
       }
     } else if (activeTab === 'reviews') {
@@ -236,6 +242,34 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, userLoading, user, loading, userType]);
+
+  // Refresh tasks when page regains focus (e.g., when returning from task detail page)
+  useEffect(() => {
+    if (!user || !user._id || userLoading || loading) return;
+
+    const handleFocus = () => {
+      if (activeTab === 'tasks' && !loadingTasks) {
+        // Refresh tasks when page regains focus and tasks tab is active
+        loadTasks();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeTab === 'tasks' && !loadingTasks) {
+        // Refresh tasks when page becomes visible and tasks tab is active
+        loadTasks();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, userLoading, loading, activeTab, loadingTasks]);
 
   const loadPets = async () => {
     if (userType !== 'owner' || !user || !user._id) return;
@@ -276,6 +310,19 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
           task.assignedTo?._id === user._id || 
           task.applicants?.some(applicant => applicant._id === user._id)
         );
+        // Debug: Log task statuses for helpers
+        if (userType === 'helper' && assigned.length > 0) {
+          console.log('Helper tasks statuses:', assigned.map(t => ({
+            id: t._id,
+            title: t.title,
+            status: t.status,
+            statusType: typeof t.status,
+            statusLength: t.status?.length,
+            applicants: t.applicants?.length,
+            isPending: t.status === 'pending',
+            isOpen: t.status === 'open'
+          })));
+        }
         setAssignedTasks(assigned);
       } else {
         toast.error(response.message || "Failed to load tasks");
@@ -296,7 +343,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     setLoadingReviews(true);
     // Clear reviews first to avoid showing stale data
     setReviews([]);
-    
+
     try {
       // Fetch reviews filtered by user role
       // For helper: only show reviews where owner reviewed helper (user was the assigned helper)
@@ -362,6 +409,40 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
       const errorMessage = response.message || "Failed to update profile";
       toast.error(errorMessage);
       throw new Error(errorMessage);
+    }
+  };
+
+  // 添加切换角色的功能
+  const handleAddRole = async (role: 'owner' | 'helper') => {
+    if (!user) return;
+
+    // 检查用户是否已经有这个角色
+    if (user.roles.includes(role)) {
+      toast.info(`You already have the ${role} role`);
+      return;
+    }
+
+    setAddingRole(true);
+    try {
+      const response = await api.post<any>('/users/add-role', { role });
+
+      if (response.success && response.data) {
+        // 更新用户上下文
+        setUser(response.data);
+        toast.success(`Successfully added ${role} role!`);
+
+        // 如果添加的是helper角色且当前在owner profile页面，提示用户可以切换视图
+        if (role === 'helper' && userType === 'owner') {
+          toast.info('You can now switch to helper view');
+        }
+      } else {
+        toast.error(response.message || `Failed to add ${role} role`);
+      }
+    } catch (error) {
+      console.error('Failed to add role:', error);
+      toast.error(`Failed to add ${role} role. Please try again.`);
+    } finally {
+      setAddingRole(false);
     }
   };
 
@@ -494,19 +575,58 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-primary" style={{ fontWeight: 700, fontSize: '32px' }}>{user?.name || "User"}</h1>
+                    {user?.roles && user.roles.length > 1 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {user.roles.join(' & ')}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>{user?.email || ""}</span>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="gap-2 hover:bg-primary/10 hover:border-primary hover:text-primary transition-all"
-                  onClick={() => setEditProfileOpen(true)}
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit Profile
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2 hover:bg-primary/10 hover:border-primary hover:text-primary transition-all"
+                    onClick={() => setEditProfileOpen(true)}
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit Profile
+                  </Button>
+
+                  {/* 添加角色切换按钮 */}
+                  {!addingRole && user && (
+                    <>
+                      {userType === 'owner' && !user.roles.includes('helper') && (
+                        <Button
+                          variant="outline"
+                          className="gap-2 hover:bg-accent hover:border-accent hover:text-accent-foreground transition-all"
+                          onClick={() => handleAddRole('helper')}
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          Become Helper
+                        </Button>
+                      )}
+                      {userType === 'helper' && !user.roles.includes('owner') && (
+                        <Button
+                          variant="outline"
+                          className="gap-2 hover:bg-accent hover:border-accent hover:text-accent-foreground transition-all"
+                          onClick={() => handleAddRole('owner')}
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          Become Owner
+                        </Button>
+                      )}
+                    </>
+                  )}
+
+                  {addingRole && (
+                    <Button variant="outline" disabled>
+                      Adding Role...
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <p className="text-muted-foreground mb-6">
@@ -602,7 +722,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                       </div>
                       <div>
                         <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {postedTasks.filter(t => t.status === 'open' || t.status === 'in_progress').length}
+                          {postedTasks.filter(t => t.status === 'open' || t.status === 'pending' || t.status === 'in_progress' || t.status === 'pending_confirmation').length}
                         </div>
                         <div className="text-xs text-muted-foreground">Active Tasks</div>
                       </div>
@@ -803,32 +923,52 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <h3 style={{ fontWeight: 600 }}>{task.title}</h3>
-                                <Badge 
-                                  className={
-                                    task.status === 'open'
-                                      ? 'bg-accent !text-white border-transparent' 
-                                      : task.status === 'in_progress'
-                                      ? 'bg-chart-5 !text-white border-transparent'
-                                      : task.status === 'completed'
-                                      ? 'bg-primary !text-white border-transparent'
-                                      : 'bg-secondary !text-secondary-foreground border-transparent'
-                                  }
-                                >
-                                  {task.status.replace('_', ' ')}
-                                </Badge>
+                                {task.status && (
+                                  <Badge
+                                    className={
+                                      task.status.trim() === 'open'
+                                        ? 'bg-accent !text-white border-transparent'
+                                        : task.status.trim() === 'pending'
+                                        ? 'bg-chart-6 !text-white border-transparent'
+                                        : task.status.trim() === 'in_progress'
+                                        ? 'bg-chart-5 !text-white border-transparent'
+                                        : task.status.trim() === 'pending_confirmation'
+                                        ? 'bg-chart-7 !text-white border-transparent'
+                                        : task.status.trim() === 'completed'
+                                        ? 'bg-primary !text-white border-transparent'
+                                        : 'bg-secondary !text-secondary-foreground border-transparent'
+                                    }
+                                  >
+                                    {task.status.trim() === 'open'
+                                      ? 'open'
+                                      : task.status.trim() === 'pending'
+                                      ? 'pending'
+                                      : task.status.trim() === 'pending_confirmation'
+                                      ? 'pending confirmation'
+                                      : task.status.replace(/_/g, ' ')}
+                                  </Badge>
+                                )}
                               </div>
                               {userType === 'owner' ? (
-                                task.status === 'open' && (
-                                  <button 
-                                    onClick={() => applicantsCount > 0 && handleViewApplicants(task)}
-                                    className={`text-sm text-muted-foreground flex items-center gap-2 ${
-                                      applicantsCount > 0 ? 'hover:text-primary cursor-pointer' : 'cursor-default'
-                                    }`}
-                                  >
-                                    <Users className="w-4 h-4" />
-                                    {applicantsCount} application{applicantsCount !== 1 ? 's' : ''} received
-                                  </button>
-                                )
+                                <>
+                                  {task.status === 'open' && (
+                                    <button
+                                      onClick={() => applicantsCount > 0 && handleViewApplicants(task)}
+                                      className={`text-sm text-muted-foreground flex items-center gap-2 ${
+                                        applicantsCount > 0 ? 'hover:text-primary cursor-pointer' : 'cursor-default'
+                                      }`}
+                                    >
+                                      <Users className="w-4 h-4" />
+                                      {applicantsCount} application{applicantsCount !== 1 ? 's' : ''} received
+                                    </button>
+                                  )}
+                                  {task.status === 'pending_confirmation' && (
+                                    <p className="text-sm text-yellow-600 flex items-center gap-2">
+                                      <Clock className="w-4 h-4" />
+                                      Waiting for your confirmation
+                                    </p>
+                                  )}
+                                </>
                               ) : (
                                 <div className="text-sm text-muted-foreground space-y-1">
                                   {task.date && (
@@ -851,8 +991,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                                 variant="outline" 
                                 size="sm" 
                                 className="hover:bg-primary/10 hover:border-primary hover:text-primary"
-                                onClick={() => onNavigate('task-detail', { 
-                                  taskId: task._id, 
+                                onClick={() => onNavigate('task-detail', {
+                                  taskId: task._id,
                                   returnTo: userType === 'owner' ? 'owner-profile' : 'helper-profile',
                                   activeTab: 'tasks'
                                 })}

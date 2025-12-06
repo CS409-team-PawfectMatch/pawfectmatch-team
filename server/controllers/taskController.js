@@ -159,8 +159,8 @@ export const applyToTask = async (req, res) => {
       });
     }
 
-    // Check if task is open
-    if (task.status !== 'open') {
+    // Check if task is open or pending (both allow applications)
+    if (task.status !== 'open' && task.status !== 'pending') {
       return res.status(400).json({
         success: false,
         message: 'Task is not open for applications',
@@ -186,9 +186,24 @@ export const applyToTask = async (req, res) => {
       });
     }
 
+    // Check if this is the first applicant (before adding)
+    const isFirstApplicant = task.applicants.length === 0;
+    const currentStatus = task.status;
+    
     // Add user to applicants
     task.applicants.push(userId);
+    
+    // If this is the first applicant and task is still 'open', change status to 'pending'
+    if (isFirstApplicant && task.status === 'open') {
+      task.status = 'pending';
+      console.log(`Task ${id} status changed from 'open' to 'pending' (first applicant)`);
+    }
+    
     await task.save();
+    
+    // Verify the status was saved correctly
+    const savedTask = await Task.findById(id);
+    console.log(`Task ${id} status after save: ${savedTask.status}, applicants count: ${savedTask.applicants.length}`);
 
     // Add task to user's tasksApplied array
     await User.findByIdAndUpdate(userId, {
@@ -280,8 +295,62 @@ export const assignHelper = async (req, res) => {
   }
 };
 
-// Complete task (owner only)
+// Complete task (helper only) - marks task as pending_confirmation
 export const completeTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Find the task
+    const task = await Task.findById(id);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found',
+      });
+    }
+
+    // Check if user is the assigned helper
+    if (!task.assignedTo || task.assignedTo.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned helper can mark a task as complete',
+      });
+    }
+
+    // Check if task is in progress
+    if (task.status !== 'in_progress') {
+      return res.status(400).json({
+        success: false,
+        message: 'Task must be in progress to be marked as complete',
+      });
+    }
+
+    // Update status to pending_confirmation
+    task.status = 'pending_confirmation';
+    await task.save();
+
+    // Populate and return updated task
+    const updatedTask = await Task.findById(id)
+      .populate('pet', 'name type photos')
+      .populate('postedBy', 'name profilePhoto rating')
+      .populate('assignedTo', 'name profilePhoto rating')
+      .populate('applicants', 'name profilePhoto');
+
+    res.json({
+      success: true,
+      data: updatedTask,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error completing task',
+    });
+  }
+};
+
+// Confirm task completion (owner only) - marks task as completed
+export const confirmTask = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -299,15 +368,15 @@ export const completeTask = async (req, res) => {
     if (task.postedBy.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Only the task owner can complete a task',
+        message: 'Only the task owner can confirm task completion',
       });
     }
 
-    // Check if task is in progress
-    if (task.status !== 'in_progress') {
+    // Check if task is pending_confirmation
+    if (task.status !== 'pending_confirmation') {
       return res.status(400).json({
         success: false,
-        message: 'Task must be in progress to be completed',
+        message: 'Task must be pending confirmation to be confirmed',
       });
     }
 
@@ -329,7 +398,7 @@ export const completeTask = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || 'Error completing task',
+      message: error.message || 'Error confirming task',
     });
   }
 };

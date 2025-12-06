@@ -3,13 +3,12 @@
  * Anyone can view this page (if authenticated), but target user must have "helper" role
  */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
-import { Star, MapPin, Shield, MessageCircle, Calendar, CheckCircle2, TrendingUp, Clock, ArrowLeft, Briefcase } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { Star, Shield, MessageCircle, CheckCircle2, TrendingUp, Clock, ArrowLeft, Briefcase } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { toast } from "sonner";
 import { api } from "../lib/api";
@@ -35,12 +34,15 @@ interface HelperUser extends UserType {
 export function HelperPublicProfilePage({ onNavigate, userId, helperId }: HelperPublicProfilePageProps) {
   // Support both userId and helperId for backward compatibility
   const targetUserId = helperId || userId;
-  const { user: currentUser, loading: userLoading, isAuthenticated } = useUser();
+  const { loading: userLoading, isAuthenticated } = useUser();
   const [loading, setLoading] = useState(true);
   const [helperUser, setHelperUser] = useState<HelperUser | null>(null);
 
   // Load helper user data
   useEffect(() => {
+    // Wait for user loading to complete before checking authentication
+    if (userLoading) return;
+    
     if (!targetUserId) {
       toast.error("Helper ID not provided");
       onNavigate('find-helpers');
@@ -55,7 +57,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
 
     loadHelperUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUserId, isAuthenticated]);
+  }, [targetUserId, isAuthenticated, userLoading]);
 
   const loadHelperUser = async () => {
     if (!targetUserId) return;
@@ -180,15 +182,6 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 mb-2">
-                    <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    <span style={{ fontWeight: 600 }}>{rating > 0 ? rating.toFixed(1) : '—'}</span>
-                    {reviewCount > 0 && (
-                      <span className="text-muted-foreground text-sm">
-                        ({reviewCount} review{reviewCount !== 1 ? 's' : ''})
-                      </span>
-                    )}
-                  </div>
                 </div>
                 <Button 
                   className="bg-primary hover:bg-primary/90 text-white gap-2"
@@ -251,7 +244,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                     </div>
                     <div>
                       <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {reviewCount}
+                        {rating > 0 ? rating.toFixed(1) : '—'}
                       </div>
                       <div className="text-xs text-muted-foreground">Reviews</div>
                     </div>

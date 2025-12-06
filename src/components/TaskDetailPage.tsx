@@ -15,7 +15,6 @@ interface TaskDetailPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
   taskId?: string;
   returnTo?: string;
-  activeTab?: string;
 }
 
 interface Task {
@@ -40,13 +39,13 @@ interface Task {
     _id: string;
     name: string;
     profilePhoto?: string;
-    ownerRating?: number;
+    rating?: number;
   };
   assignedTo?: {
     _id: string;
     name: string;
     profilePhoto?: string;
-    helperRating?: number;
+    rating?: number;
   };
   applicants?: Array<{
     _id: string;
@@ -55,7 +54,7 @@ interface Task {
   }>;
 }
 
-export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: TaskDetailPageProps) {
+export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -175,10 +174,10 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
         setTask(response.data);
         // Debug: log rating values
         if (response.data.postedBy) {
-          console.log('Owner rating:', response.data.postedBy.ownerRating);
+          console.log('Owner rating:', response.data.postedBy.rating);
         }
         if (response.data.assignedTo) {
-          console.log('Helper rating:', response.data.assignedTo.helperRating);
+          console.log('Helper rating:', response.data.assignedTo.rating);
         }
       } else {
         toast.error("Failed to load task");
@@ -391,8 +390,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
           variant="ghost" 
           onClick={() => {
             if (returnTo === 'owner-profile' || returnTo === 'helper-profile' || returnTo === 'profile') {
-              // Navigate back to profile page with activeTab parameter
-              onNavigate(returnTo, { activeTab: activeTab || 'tasks' });
+              onNavigate(returnTo);
             } else {
               onNavigate('tasks');
             }
@@ -499,7 +497,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                       <span className="text-sm" style={{ fontWeight: 600 }}>
-                        {formatRating(task.postedBy?.ownerRating)}
+                        {formatRating(task.postedBy?.rating)}
                       </span>
                     </div>
                   </div>
@@ -576,7 +574,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                 )}
                 
                 {/* Non-owner: Apply button */}
-                {!isTaskOwner && isAuthenticated &&(
+                {!isTaskOwner && isAuthenticated && (
                   <div className="mt-auto space-y-4">
                     <div className="bg-secondary/20 p-4 rounded-xl">
                       <div className="text-sm text-muted-foreground mb-1">You'll earn</div>
@@ -637,7 +635,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                           <span className="text-sm" style={{ fontWeight: 600 }}>
-                            {formatRating(task.assignedTo?.helperRating)}
+                            {formatRating(task.assignedTo?.rating)}
                           </span>
                         </div>
                       </div>
@@ -693,6 +691,38 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
           {/* Third Row: Task Status / Apply Card - Full Width (only when status is not open or pending) */}
           {task.status !== "open" && task.status !== "pending" && (
             <div>
+              {/* Apply Card - Show for helpers when helper is assigned */}
+              {isHelper() && !isTaskOwner && task.assignedTo && (
+                <Card className="p-6 border-0 shadow-md bg-secondary/20">
+                  <h3 className="mb-4" style={{ fontWeight: 600 }}>Apply for this Task</h3>
+                  <div className="space-y-4">
+                    <div className="bg-white p-4 rounded-xl">
+                      <div className="text-sm text-muted-foreground mb-1">You'll earn</div>
+                      <div className="text-primary" style={{ fontWeight: 700, fontSize: '36px' }}>{rewardDisplay}</div>
+                      <div className="text-sm text-muted-foreground">per session</div>
+                    </div>
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                      onClick={handleApply}
+                      disabled={applying || hasApplied}
+                    >
+                      {applying ? 'Applying...' : hasApplied ? 'Already Applied' : 'Apply Now'}
+                    </Button>
+                    {hasApplied && (
+                      <p className="text-xs text-center text-primary">
+                        Your application has been submitted
+                      </p>
+                    )}
+                    {!hasApplied && (
+                      <p className="text-xs text-center text-muted-foreground">
+                        You'll be able to chat with the owner after applying
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              )}
+
               {/* Task Status - Show for owner or helper when status is not open */}
               {((isTaskOwner || isTaskHelper)) && (
                 <Card className="p-4 border-0 shadow-md">

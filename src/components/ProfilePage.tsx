@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import {
-  Star, MapPin, Shield, Edit, Heart, MessageCircle, Calendar,
-  CheckCircle2, TrendingUp, Clock, PawPrint, Award, Briefcase,
+import { 
+  Star, MapPin, Shield, Edit, Heart, MessageCircle, Calendar, 
+  CheckCircle2, TrendingUp, Clock, PawPrint, Award, Briefcase, 
   ArrowLeft, PlusCircle
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -24,7 +24,6 @@ import { User as UserIcon } from "lucide-react";
 interface ProfilePageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
   userType?: 'owner' | 'helper';
-  activeTab?: 'pets' | 'tasks' | 'reviews';
 }
 
 interface Pet {
@@ -116,27 +115,14 @@ interface BackendPet {
   owner?: string;
 }
 
-export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initialActiveTab }: ProfilePageProps) {
+export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps) {
   const { user, loading: userLoading, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [loadingPets, setLoadingPets] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pets' | 'tasks' | 'reviews'>(initialActiveTab || 'tasks');
+  const [activeTab, setActiveTab] = useState<'pets' | 'tasks' | 'reviews'>('tasks');
   const [addingRole, setAddingRole] = useState(false); // 新增状态用于跟踪角色添加过程
-  const hasRefreshedUser = useRef(false);
-
-  // Update activeTab when initialActiveTab prop changes
-  useEffect(() => {
-    if (initialActiveTab) {
-      setActiveTab(initialActiveTab);
-    }
-  }, [initialActiveTab]);
-
-  // Clear reviews when userType changes to avoid showing wrong reviews
-  useEffect(() => {
-    setReviews([]);
-  }, [userType]);
 
   // Profile data from real user (computed for EditProfileDialog compatibility)
   const getProfileData = (): ProfileData => ({
@@ -189,23 +175,6 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
 
     // Load initial data based on default tab (tasks)
     const initializeData = async () => {
-      // Refresh user data to get latest rating information (only once)
-      if (!hasRefreshedUser.current) {
-        try {
-          const userResponse = await api.get(`/auth/me`);
-          if (userResponse.success && userResponse.data) {
-            console.log('User data from API:', userResponse.data);
-            console.log('helperRating:', userResponse.data.helperRating);
-            console.log('ownerRating:', userResponse.data.ownerRating);
-            setUser(userResponse.data);
-            hasRefreshedUser.current = true;
-          }
-        } catch (error) {
-          console.error('Failed to refresh user data:', error);
-          // Continue even if refresh fails
-        }
-      }
-
       // Load tasks by default since activeTab starts as 'tasks'
       await loadTasks();
       setLoading(false);
@@ -213,7 +182,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
 
     initializeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?._id]);
+  }, [userLoading, user]);
 
   // Load data when tab changes
   useEffect(() => {
@@ -234,13 +203,13 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
         loadTasks();
       }
     } else if (activeTab === 'reviews') {
-      // Always reload reviews when reviews tab is activated to ensure correct role filtering
-      // Clear reviews first to avoid showing stale data
-      setReviews([]);
-      loadReviews();
+      // Load reviews when reviews tab is activated (only if not already loaded)
+      if (reviews.length === 0 && !loadingReviews) {
+        loadReviews();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, userLoading, user, loading, userType]);
+  }, [activeTab, userLoading, user, loading]);
 
   // Refresh tasks when page regains focus (e.g., when returning from task detail page)
   useEffect(() => {
@@ -311,10 +280,10 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
         );
         // Debug: Log task statuses for helpers
         if (userType === 'helper' && assigned.length > 0) {
-          console.log('Helper tasks statuses:', assigned.map(t => ({
-            id: t._id,
-            title: t.title,
-            status: t.status,
+          console.log('Helper tasks statuses:', assigned.map(t => ({ 
+            id: t._id, 
+            title: t.title, 
+            status: t.status, 
             statusType: typeof t.status,
             statusLength: t.status?.length,
             applicants: t.applicants?.length,
@@ -340,37 +309,19 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     if (!user || !user._id) return;
     
     setLoadingReviews(true);
-    // Clear reviews first to avoid showing stale data
-    setReviews([]);
-
     try {
       // Fetch reviews filtered by user role
-      // For helper: only show reviews where owner reviewed helper (user was the assigned helper)
-      // For owner: only show reviews where helper reviewed owner (user was the task owner)
+      // For helper: only show reviews where owner reviewed helper
+      // For owner: only show reviews where helper reviewed owner
       const response = await api.get<Review[]>(`/users/${user._id}/reviews?role=${userType}`);
       if (response.success && response.data) {
-        const reviewsData = Array.isArray(response.data) ? response.data : [];
-        console.log(`ProfilePage - Loading reviews for ${userType}:`, {
-          userType,
-          userId: user._id,
-          reviewsCount: reviewsData.length,
-          reviews: reviewsData.map(r => ({
-            id: r._id,
-            reviewer: r.reviewer?.name,
-            task: r.task?.title,
-            rating: r.rating,
-            comment: r.comment
-          }))
-        });
-        setReviews(reviewsData);
+        setReviews(Array.isArray(response.data) ? response.data : []);
       } else {
         toast.error(response.message || "Failed to load reviews");
-        setReviews([]); // Clear on error
       }
     } catch (error) {
       console.error('Failed to load reviews:', error);
       toast.error("Failed to load reviews. Please try again.");
-      setReviews([]); // Clear on error
     } finally {
       setLoadingReviews(false);
     }
@@ -414,22 +365,22 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
   // 添加切换角色的功能
   const handleAddRole = async (role: 'owner' | 'helper') => {
     if (!user) return;
-
+    
     // 检查用户是否已经有这个角色
     if (user.roles.includes(role)) {
       toast.info(`You already have the ${role} role`);
       return;
     }
-
+    
     setAddingRole(true);
     try {
       const response = await api.post<any>('/users/add-role', { role });
-
+      
       if (response.success && response.data) {
         // 更新用户上下文
         setUser(response.data);
         toast.success(`Successfully added ${role} role!`);
-
+        
         // 如果添加的是helper角色且当前在owner profile页面，提示用户可以切换视图
         if (role === 'helper' && userType === 'owner') {
           toast.info('You can now switch to helper view');
@@ -585,21 +536,21 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
+                  <Button 
+                    variant="outline" 
                     className="gap-2 hover:bg-primary/10 hover:border-primary hover:text-primary transition-all"
                     onClick={() => setEditProfileOpen(true)}
                   >
                     <Edit className="w-4 h-4" />
                     Edit Profile
                   </Button>
-
+                  
                   {/* 添加角色切换按钮 */}
                   {!addingRole && user && (
                     <>
                       {userType === 'owner' && !user.roles.includes('helper') && (
-                        <Button
-                          variant="outline"
+                        <Button 
+                          variant="outline" 
                           className="gap-2 hover:bg-accent hover:border-accent hover:text-accent-foreground transition-all"
                           onClick={() => handleAddRole('helper')}
                         >
@@ -608,8 +559,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                         </Button>
                       )}
                       {userType === 'helper' && !user.roles.includes('owner') && (
-                        <Button
-                          variant="outline"
+                        <Button 
+                          variant="outline" 
                           className="gap-2 hover:bg-accent hover:border-accent hover:text-accent-foreground transition-all"
                           onClick={() => handleAddRole('owner')}
                         >
@@ -619,7 +570,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                       )}
                     </>
                   )}
-
+                  
                   {addingRole && (
                     <Button variant="outline" disabled>
                       Adding Role...
@@ -680,21 +631,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                         <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
                       </div>
                       <div>
-                        <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {(() => {
-                            const rating = userType === 'helper' ? user?.helperRating : user?.ownerRating;
-                            // Log for debugging
-                            if (user) {
-                              console.log(`ProfilePage - userType: ${userType}, rating:`, rating, 'user:', {
-                                helperRating: user.helperRating,
-                                ownerRating: user.ownerRating,
-                                fullUser: user
-                              });
-                            }
-                            // Show rating if it exists and is greater than 0, otherwise show —
-                            return rating && rating > 0 ? rating.toFixed(1) : '—';
-                          })()}
-                        </div>
+                        <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>—</div>
                         <div className="text-xs text-muted-foreground">Rating</div>
                       </div>
                     </div>
@@ -702,7 +639,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                 </div>
               ) : (
                 // Owner Stats
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -737,19 +674,6 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                           {user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear()}
                         </div>
                         <div className="text-xs text-muted-foreground">Member Since</div>
-                      </div>
-                    </div>
-                  </Card>
-                  <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center">
-                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                      </div>
-                      <div>
-                        <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {user?.ownerRating && user.ownerRating > 0 ? user.ownerRating.toFixed(1) : '—'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Rating</div>
                       </div>
                     </div>
                   </Card>
@@ -923,10 +847,10 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                               <div className="flex items-center gap-2 mb-2">
                                 <h3 style={{ fontWeight: 600 }}>{task.title}</h3>
                                 {task.status && (
-                                  <Badge
+                                  <Badge 
                                     className={
                                       task.status.trim() === 'open'
-                                        ? 'bg-accent !text-white border-transparent'
+                                        ? 'bg-accent !text-white border-transparent' 
                                         : task.status.trim() === 'pending'
                                         ? 'bg-chart-6 !text-white border-transparent'
                                         : task.status.trim() === 'in_progress'
@@ -938,12 +862,12 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                                         : 'bg-secondary !text-secondary-foreground border-transparent'
                                     }
                                   >
-                                    {task.status.trim() === 'open'
-                                      ? 'open'
+                                    {task.status.trim() === 'open' 
+                                      ? 'open' 
                                       : task.status.trim() === 'pending'
                                       ? 'pending'
-                                      : task.status.trim() === 'pending_confirmation'
-                                      ? 'pending confirmation'
+                                      : task.status.trim() === 'pending_confirmation' 
+                                      ? 'pending confirmation' 
                                       : task.status.replace(/_/g, ' ')}
                                   </Badge>
                                 )}
@@ -951,7 +875,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                               {userType === 'owner' ? (
                                 <>
                                   {task.status === 'open' && (
-                                    <button
+                                    <button 
                                       onClick={() => applicantsCount > 0 && handleViewApplicants(task)}
                                       className={`text-sm text-muted-foreground flex items-center gap-2 ${
                                         applicantsCount > 0 ? 'hover:text-primary cursor-pointer' : 'cursor-default'
@@ -990,11 +914,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                                 variant="outline" 
                                 size="sm" 
                                 className="hover:bg-primary/10 hover:border-primary hover:text-primary"
-                                onClick={() => onNavigate('task-detail', {
-                                  taskId: task._id,
-                                  returnTo: userType === 'owner' ? 'owner-profile' : 'helper-profile',
-                                  activeTab: 'tasks'
-                                })}
+                                onClick={() => onNavigate('task-detail', { taskId: task._id, returnTo: 'profile' })}
                               >
                                 View
                               </Button>

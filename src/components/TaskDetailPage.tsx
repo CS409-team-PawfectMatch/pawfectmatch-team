@@ -60,6 +60,18 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
   const [completing, setCompleting] = useState(false);
   const [applicantsDialogOpen, setApplicantsDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [userReview, setUserReview] = useState<{
+    rating: number;
+    comment: string;
+    createdAt: string;
+  } | null>(null);
+  const [receivedReview, setReceivedReview] = useState<{
+    rating: number;
+    comment: string;
+    createdAt: string;
+    reviewerName: string;
+  } | null>(null);
   const { user, isOwner, isHelper, isAuthenticated } = useUser();
 
   useEffect(() => {
@@ -70,6 +82,86 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
       onNavigate('tasks');
     }
   }, [taskId]);
+
+  // Check review status when task and user are loaded
+  useEffect(() => {
+    if (task && user && taskId) {
+      checkReviewStatus();
+    }
+  }, [task, user, taskId]);
+
+  const checkReviewStatus = async () => {
+    if (!taskId || !user || !task) return;
+    
+    try {
+      const isOwner = task.postedBy?._id === user._id;
+      const isHelper = task.assignedTo?._id === user._id;
+      
+      if (!isOwner && !isHelper) {
+        setHasSubmittedReview(false);
+        setUserReview(null);
+        setReceivedReview(null);
+        return;
+      }
+      
+      // Determine who we should review (the other party)
+      const revieweeId = isOwner ? task.assignedTo?._id : task.postedBy?._id;
+      
+      if (!revieweeId) {
+        setHasSubmittedReview(false);
+        setUserReview(null);
+        setReceivedReview(null);
+        return;
+      }
+      
+      // Get reviews for the reviewee (to find our review)
+      const reviewsResponse = await api.get(`/users/${revieweeId}/reviews`);
+      if (reviewsResponse.success && reviewsResponse.data) {
+        const review = reviewsResponse.data.find((review: any) => 
+          review.task._id === taskId && review.reviewer._id === user._id
+        );
+        if (review) {
+          setHasSubmittedReview(true);
+          setUserReview({
+            rating: review.rating,
+            comment: review.comment || '',
+            createdAt: review.createdAt,
+          });
+        } else {
+          setHasSubmittedReview(false);
+          setUserReview(null);
+        }
+      } else {
+        setHasSubmittedReview(false);
+        setUserReview(null);
+      }
+      
+      // Get reviews for current user (to find review received from the other party)
+      const myReviewsResponse = await api.get(`/users/${user._id}/reviews`);
+      if (myReviewsResponse.success && myReviewsResponse.data) {
+        const receivedReviewData = myReviewsResponse.data.find((review: any) => 
+          review.task._id === taskId && review.reviewer._id === revieweeId
+        );
+        if (receivedReviewData) {
+          setReceivedReview({
+            rating: receivedReviewData.rating,
+            comment: receivedReviewData.comment || '',
+            createdAt: receivedReviewData.createdAt,
+            reviewerName: receivedReviewData.reviewer?.name || (isOwner ? task.assignedTo?.name || 'Helper' : task.postedBy?.name || 'Owner'),
+          });
+        } else {
+          setReceivedReview(null);
+        }
+      } else {
+        setReceivedReview(null);
+      }
+    } catch (error) {
+      // If error, assume no review submitted yet
+      setHasSubmittedReview(false);
+      setUserReview(null);
+      setReceivedReview(null);
+    }
+  };
 
   const loadTask = async () => {
     if (!taskId) return;
@@ -164,7 +256,6 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
 
   const handleSubmitReview = async (rating: number, comment: string, revieweeId: string, taskId: string) => {
     try {
-      // TODO: Replace with actual API endpoint when backend is ready
       const response = await api.post(`/tasks/${taskId}/review`, {
         rating,
         comment,
@@ -173,7 +264,20 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
       
       if (response.success) {
         toast.success("Review submitted successfully!");
+        setHasSubmittedReview(true);
+        // Store the review data from the response
+        if (response.data) {
+          setUserReview({
+            rating: response.data.rating,
+            comment: response.data.comment || '',
+            createdAt: response.data.createdAt || new Date().toISOString(),
+          });
+        }
         loadTask(); // Reload task to update any review-related data
+        // Re-check review status to ensure we have the latest data
+        setTimeout(() => {
+          checkReviewStatus();
+        }, 500);
       } else {
         throw new Error(response.message || "Failed to submit review");
       }
@@ -536,13 +640,69 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                   </Button>
                 )}
                 {task.status === "completed" && (
-                  <Button 
-                    size="lg"
-                    className="w-full !bg-primary hover:!bg-primary/90 !text-white"
-                    onClick={() => setReviewDialogOpen(true)}
-                  >
-                    Click to Review
-                  </Button>
+                  <div className="space-y-4">
+                    {/* Review received from the other party */}
+                    {receivedReview && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">
+                            Review from {receivedReview.reviewerName}:
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-4 h-4 ${
+                                  star <= receivedReview.rating
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {receivedReview.comment && (
+                          <div className="bg-muted/50 p-3 rounded-lg">
+                            <p className="text-sm text-foreground">{receivedReview.comment}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* User's own review */}
+                    {hasSubmittedReview && userReview ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">Your Review:</span>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-4 h-4 ${
+                                  star <= userReview.rating
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {userReview.comment && (
+                          <div className="bg-muted/50 p-3 rounded-lg">
+                            <p className="text-sm text-foreground">{userReview.comment}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Button 
+                        size="lg"
+                        className="w-full !bg-primary hover:!bg-primary/90 !text-white"
+                        onClick={() => setReviewDialogOpen(true)}
+                      >
+                        Click to Review
+                      </Button>
+                    )}
+                  </div>
                 )}
               </Card>
             )}

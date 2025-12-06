@@ -128,6 +128,11 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     }
   }, [initialActiveTab]);
 
+  // Clear reviews when userType changes to avoid showing wrong reviews
+  useEffect(() => {
+    setReviews([]);
+  }, [userType]);
+
   // Profile data from real user (computed for EditProfileDialog compatibility)
   const getProfileData = (): ProfileData => ({
     username: user?.name || "",
@@ -224,13 +229,13 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
         loadTasks();
       }
     } else if (activeTab === 'reviews') {
-      // Load reviews when reviews tab is activated (only if not already loaded)
-      if (reviews.length === 0 && !loadingReviews) {
-        loadReviews();
-      }
+      // Always reload reviews when reviews tab is activated to ensure correct role filtering
+      // Clear reviews first to avoid showing stale data
+      setReviews([]);
+      loadReviews();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, userLoading, user, loading]);
+  }, [activeTab, userLoading, user, loading, userType]);
 
   const loadPets = async () => {
     if (userType !== 'owner' || !user || !user._id) return;
@@ -289,19 +294,37 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     if (!user || !user._id) return;
     
     setLoadingReviews(true);
+    // Clear reviews first to avoid showing stale data
+    setReviews([]);
+    
     try {
       // Fetch reviews filtered by user role
-      // For helper: only show reviews where owner reviewed helper
-      // For owner: only show reviews where helper reviewed owner
+      // For helper: only show reviews where owner reviewed helper (user was the assigned helper)
+      // For owner: only show reviews where helper reviewed owner (user was the task owner)
       const response = await api.get<Review[]>(`/users/${user._id}/reviews?role=${userType}`);
       if (response.success && response.data) {
-        setReviews(Array.isArray(response.data) ? response.data : []);
+        const reviewsData = Array.isArray(response.data) ? response.data : [];
+        console.log(`ProfilePage - Loading reviews for ${userType}:`, {
+          userType,
+          userId: user._id,
+          reviewsCount: reviewsData.length,
+          reviews: reviewsData.map(r => ({
+            id: r._id,
+            reviewer: r.reviewer?.name,
+            task: r.task?.title,
+            rating: r.rating,
+            comment: r.comment
+          }))
+        });
+        setReviews(reviewsData);
       } else {
         toast.error(response.message || "Failed to load reviews");
+        setReviews([]); // Clear on error
       }
     } catch (error) {
       console.error('Failed to load reviews:', error);
       toast.error("Failed to load reviews. Please try again.");
+      setReviews([]); // Clear on error
     } finally {
       setLoadingReviews(false);
     }

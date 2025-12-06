@@ -738,7 +738,7 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                                       : 'bg-secondary !text-secondary-foreground border-transparent'
                                   }
                                 >
-                                  {task.status.replace('_', ' ')}
+                                  {task.status === 'open' ? 'pending' : task.status.replace('_', ' ')}
                                 </Badge>
                               </div>
                               {userType === 'owner' ? (

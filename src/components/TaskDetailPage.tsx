@@ -9,6 +9,7 @@ import { api } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { toast } from "sonner";
 import { ApplicantsDialog } from "./ApplicantsDialog";
+import { ReviewDialog } from "./ReviewDialog";
 
 interface TaskDetailPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
@@ -58,6 +59,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
   const [assigning, setAssigning] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [applicantsDialogOpen, setApplicantsDialogOpen] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const { user, isOwner, isHelper, isAuthenticated } = useUser();
 
   useEffect(() => {
@@ -157,7 +159,29 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
   };
 
   const isTaskOwner = task && user && task.postedBy?._id === user._id;
+  const isTaskHelper = task && user && task.assignedTo?._id === user._id;
   const hasApplied = task?.applicants?.some(app => app._id === user?._id);
+
+  const handleSubmitReview = async (rating: number, comment: string, revieweeId: string, taskId: string) => {
+    try {
+      // TODO: Replace with actual API endpoint when backend is ready
+      const response = await api.post(`/tasks/${taskId}/review`, {
+        rating,
+        comment,
+        revieweeId,
+      });
+      
+      if (response.success) {
+        toast.success("Review submitted successfully!");
+        loadTask(); // Reload task to update any review-related data
+      } else {
+        throw new Error(response.message || "Failed to submit review");
+      }
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      throw error;
+    }
+  };
 
   if (loading) {
     return (
@@ -466,6 +490,23 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
               </Card>
             )}
 
+            {/* Review Button - Show for owner or helper when completed */}
+            {((isTaskOwner || isTaskHelper) && task.status === "completed") && (
+              <Card className="p-6 border-0 shadow-md bg-gray-50/50">
+                <h3 className="mb-4" style={{ fontWeight: 600 }}>Task Status</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This task has been completed.
+                </p>
+                <Button 
+                  size="lg"
+                  className="w-full !bg-primary hover:!bg-primary/90 !text-white"
+                  onClick={() => setReviewDialogOpen(true)}
+                >
+                  Click to Review
+                </Button>
+              </Card>
+            )}
+
 
           </div>
         </div>
@@ -480,6 +521,20 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
           applicants={formattedApplicants}
           selectedTask={{ title: task.title, applications: task.applicants?.length || 0 }}
           onConfirmHelper={(applicantId) => handleAssignHelper(applicantId.toString())}
+        />
+      )}
+
+      {/* Review Dialog */}
+      {task && ((isTaskOwner && task.assignedTo) || (isTaskHelper && task.postedBy)) && (
+        <ReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          revieweeName={isTaskOwner ? task.assignedTo?.name || "" : task.postedBy?.name || ""}
+          revieweeAvatar={isTaskOwner ? task.assignedTo?.profilePhoto : task.postedBy?.profilePhoto}
+          revieweeId={isTaskOwner ? task.assignedTo?._id || "" : task.postedBy?._id || ""}
+          taskId={taskId || ""}
+          isOwnerReviewingHelper={!!isTaskOwner}
+          onSubmit={handleSubmitReview}
         />
       )}
     </div>

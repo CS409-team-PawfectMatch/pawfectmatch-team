@@ -77,16 +77,34 @@ interface ProfileData {
   profilePhoto: string;
 }
 
+interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  reviewer: {
+    _id: string;
+    name: string;
+    profilePhoto?: string;
+  };
+  task: {
+    _id: string;
+    title: string;
+  };
+  createdAt: string;
+}
+
 export function OwnerProfilePage({ onNavigate }: OwnerProfilePageProps) {
   const { user, loading: userLoading, isOwner, isHelper, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [loadingPets, setLoadingPets] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pets' | 'tasks'>('tasks');
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pets' | 'tasks' | 'reviews'>('tasks');
   const [upgradingRole, setUpgradingRole] = useState(false);
 
   const [myPets, setMyPets] = useState<Pet[]>([]);
   const [postedTasks, setPostedTasks] = useState<Task[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [petFormOpen, setPetFormOpen] = useState(false);
@@ -136,6 +154,10 @@ export function OwnerProfilePage({ onNavigate }: OwnerProfilePageProps) {
       if (postedTasks.length === 0 && !loadingTasks) {
         loadTasks();
       }
+    } else if (activeTab === 'reviews') {
+      if (reviews.length === 0 && !loadingReviews) {
+        loadReviews();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, userLoading, user, loading, isOwner]);
@@ -181,6 +203,25 @@ export function OwnerProfilePage({ onNavigate }: OwnerProfilePageProps) {
       toast.error("Failed to load tasks. Please try again.");
     } finally {
       setLoadingTasks(false);
+    }
+  }, [user]);
+
+  const loadReviews = useCallback(async () => {
+    if (!user || !user._id) return;
+    
+    setLoadingReviews(true);
+    try {
+      const response = await api.get<Review[]>(`/users/${user._id}/reviews`);
+      if (response.success && response.data) {
+        setReviews(Array.isArray(response.data) ? response.data : []);
+      } else {
+        toast.error(response.message || "Failed to load reviews");
+      }
+    } catch (error) {
+      console.error('Failed to load reviews:', error);
+      toast.error("Failed to load reviews. Please try again.");
+    } finally {
+      setLoadingReviews(false);
     }
   }, [user]);
 
@@ -411,10 +452,11 @@ export function OwnerProfilePage({ onNavigate }: OwnerProfilePageProps) {
         </Card>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'pets' | 'tasks')} className="w-full">
-          <TabsList className="grid w-full md:w-auto grid-cols-2 mb-6">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'pets' | 'tasks' | 'reviews')} className="w-full">
+          <TabsList className="grid w-full md:w-auto grid-cols-3 mb-6">
             <TabsTrigger value="pets">My Pets</TabsTrigger>
             <TabsTrigger value="tasks">My Tasks</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
 
           {/* My Pets Tab */}
@@ -567,6 +609,68 @@ export function OwnerProfilePage({ onNavigate }: OwnerProfilePageProps) {
                     </Card>
                   );
                 })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Reviews Tab */}
+          <TabsContent value="reviews">
+            {loadingReviews ? (
+              <div className="text-center py-12">
+                <div className="text-muted-foreground">Loading reviews...</div>
+              </div>
+            ) : reviews.length === 0 ? (
+              <EmptyState
+                icon={Star}
+                title="No reviews yet!"
+                description="Reviews will appear here once helpers leave feedback on your completed tasks."
+              />
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <Card key={review._id} className="p-6 border-0 shadow-md">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={review.reviewer.profilePhoto} alt={review.reviewer.name} />
+                        <AvatarFallback className="bg-primary text-white">
+                          {review.reviewer.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 style={{ fontWeight: 600 }}>{review.reviewer.name}</h4>
+                              <span className="text-sm text-muted-foreground">
+                                for "{review.task.title}"
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-4 h-4 ${
+                                    star <= review.rating
+                                      ? "text-yellow-500 fill-yellow-500"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                            {review.comment}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
             )}
           </TabsContent>

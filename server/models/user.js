@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
     pets: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Pet',

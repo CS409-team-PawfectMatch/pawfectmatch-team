@@ -83,11 +83,18 @@ export function FindHelpersPage({ onNavigate }: FindHelpersPageProps) {
           // Use profilePhoto or default image
           const image = user.profilePhoto || 'https://images.unsplash.com/photo-1565069859254-6248c5a4bc67?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
 
+          // Debug: log user data to check helperRating
+          console.log(`FindHelpersPage - User ${user.name}:`, {
+            helperRating: user.helperRating,
+            ownerRating: user.ownerRating,
+            fullUser: user
+          });
+
           return {
             _id: user._id,
             name: user.name,
             image,
-            rating: user.helperRating || 0, // Use actual helperRating from backend
+            rating: (user.helperRating !== undefined && user.helperRating !== null && user.helperRating > 0) ? user.helperRating : 0, // Use actual helperRating from backend
             reviewCount: 0, // Default - can be fetched from reviews in future
             location: "", // Default - could be added to user model later
             services: defaultServices, // Default - could be derived from task types

@@ -416,11 +416,11 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
               <div className="space-y-2">
                 <Label htmlFor="reward">Reward Amount *</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10">$</span>
                   <Input 
                     id="reward"
                     type="text"
-                    placeholder="25"
+                    placeholder=""
                     className="bg-white pl-7"
                     value={formatReward(formData.reward || formData.budget || '')}
                     onChange={(e) => {

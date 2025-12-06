@@ -243,13 +243,32 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
     try {
       const response = await api.post(`/tasks/${taskId}/complete`, {});
       if (response.success) {
-        toast.success("Task marked as completed!");
+        toast.success("Task marked as complete! Waiting for owner confirmation.");
         loadTask(); // Reload task to update status
       } else {
         toast.error(response.message || "Failed to complete task");
       }
     } catch (error) {
       toast.error("Failed to complete task");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleConfirmTask = async () => {
+    if (!taskId) return;
+
+    setCompleting(true);
+    try {
+      const response = await api.post(`/tasks/${taskId}/confirm`, {});
+      if (response.success) {
+        toast.success("Task confirmed as completed!");
+        loadTask(); // Reload task to update status
+      } else {
+        toast.error(response.message || "Failed to confirm task");
+      }
+    } catch (error) {
+      toast.error("Failed to confirm task");
     } finally {
       setCompleting(false);
     }
@@ -394,13 +413,15 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                     <Badge 
                       className={`${
                         task.status === 'open' ? 'bg-green-500' :
+                        task.status === 'pending' ? 'bg-blue-500' :
                         task.status === 'in_progress' ? 'bg-blue-500' :
+                        task.status === 'pending_completion' ? 'bg-yellow-500' :
                         task.status === 'completed' ? 'bg-gray-500' :
                         'bg-primary'
                       } text-white`}
                       style={{ fontWeight: 600 }}
                     >
-                      {task.status === 'open' && isHelper() ? 'pending' : task.status === 'open' ? task.status : task.status.replace('_', ' ')}
+                      {task.status === 'open' && isHelper() ? 'pending' : task.status === 'pending_completion' ? 'pending completion' : task.status === 'open' ? task.status : task.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
                   <Badge className="bg-primary text-white" style={{ fontWeight: 600 }}>{typeDisplay}</Badge>
@@ -522,15 +543,21 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
             )}
 
             {/* Right column content - depends on task status */}
-            {task.status === "open" ? (
+            {(task.status === "open" || task.status === "pending") ? (
               /* Task Status Card - Always show when status is open */
               <Card className="p-4 border-0 shadow-md flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="mb-0" style={{ fontWeight: 600 }}>Task Status</h3>
                   <Badge 
-                    className="bg-accent !text-white border-transparent"
+                    className={
+                      task.status === 'open'
+                        ? 'bg-accent !text-white border-transparent'
+                        : task.status === 'pending'
+                        ? 'bg-chart-6 !text-white border-transparent'
+                        : 'bg-accent !text-white border-transparent'
+                    }
                   >
-                    {task.status?.replace(/_/g, ' ') || 'unknown'}
+                    {task.status === 'open' ? 'open' : task.status === 'pending' ? 'pending' : task.status?.replace(/_/g, ' ') || 'unknown'}
                   </Badge>
                 </div>
                 
@@ -661,8 +688,8 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
             )}
           </div>
 
-          {/* Third Row: Task Status / Apply Card - Full Width (only when status is not open) */}
-          {task.status !== "open" && (
+          {/* Third Row: Task Status / Apply Card - Full Width (only when status is not open or pending) */}
+          {task.status !== "open" && task.status !== "pending" && (
             <div>
               {/* Apply Card - Show for helpers when helper is assigned */}
               {isHelper() && !isTaskOwner && task.assignedTo && (
@@ -703,17 +730,24 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                     <h3 className="mb-0" style={{ fontWeight: 600 }}>Task Status</h3>
                     <Badge 
                       className={
-                        task.status === 'in_progress'
+                        task.status === 'open'
+                          ? 'bg-green-500 !text-white border-transparent'
+                          : task.status === 'pending'
+                          ? 'bg-blue-500 !text-white border-transparent'
+                          : task.status === 'in_progress'
                           ? 'bg-chart-5 !text-white border-transparent'
+                          : task.status === 'pending_completion'
+                          ? 'bg-yellow-500 !text-white border-transparent'
                           : task.status === 'completed'
                           ? 'bg-primary !text-white border-transparent'
                           : 'bg-secondary !text-secondary-foreground border-transparent'
                       }
                     >
-                      {task.status?.replace(/_/g, ' ') || 'unknown'}
+                      {task.status === 'pending_completion' ? 'pending completion' : task.status?.replace(/_/g, ' ') || 'unknown'}
                     </Badge>
                   </div>
-                  {task.status === "in_progress" && isTaskOwner && (
+                  {/* Helper can complete task when in progress */}
+                  {task.status === "in_progress" && isTaskHelper && (
                     <Button 
                       size="lg"
                       className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
@@ -721,6 +755,17 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo }: TaskDetailPageP
                       disabled={completing}
                     >
                       {completing ? 'Completing...' : 'Complete Task'}
+                    </Button>
+                  )}
+                  {/* Owner can confirm task when pending completion */}
+                  {task.status === "pending_completion" && isTaskOwner && (
+                    <Button 
+                      size="lg"
+                      className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
+                      onClick={handleConfirmTask}
+                      disabled={completing}
+                    >
+                      {completing ? 'Confirming...' : 'Confirm Completion'}
                     </Button>
                   )}
                   {task.status === "completed" && (

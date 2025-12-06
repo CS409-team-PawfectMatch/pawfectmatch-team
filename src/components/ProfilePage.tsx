@@ -198,8 +198,8 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
         loadPets();
       }
     } else if (activeTab === 'tasks') {
-      // Load tasks when tasks tab is activated (only if not already loaded)
-      if (myTasks.length === 0 && !loadingTasks) {
+      // Always refresh tasks when tasks tab is activated to show latest status
+      if (!loadingTasks) {
         loadTasks();
       }
     } else if (activeTab === 'reviews') {
@@ -210,6 +210,34 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, userLoading, user, loading]);
+
+  // Refresh tasks when page regains focus (e.g., when returning from task detail page)
+  useEffect(() => {
+    if (!user || !user._id || userLoading || loading) return;
+
+    const handleFocus = () => {
+      if (activeTab === 'tasks' && !loadingTasks) {
+        // Refresh tasks when page regains focus and tasks tab is active
+        loadTasks();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeTab === 'tasks' && !loadingTasks) {
+        // Refresh tasks when page becomes visible and tasks tab is active
+        loadTasks();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, userLoading, loading, activeTab, loadingTasks]);
 
   const loadPets = async () => {
     if (userType !== 'owner' || !user || !user._id) return;
@@ -250,6 +278,19 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
           task.assignedTo?._id === user._id || 
           task.applicants?.some(applicant => applicant._id === user._id)
         );
+        // Debug: Log task statuses for helpers
+        if (userType === 'helper' && assigned.length > 0) {
+          console.log('Helper tasks statuses:', assigned.map(t => ({ 
+            id: t._id, 
+            title: t.title, 
+            status: t.status, 
+            statusType: typeof t.status,
+            statusLength: t.status?.length,
+            applicants: t.applicants?.length,
+            isPending: t.status === 'pending',
+            isOpen: t.status === 'open'
+          })));
+        }
         setAssignedTasks(assigned);
       } else {
         toast.error(response.message || "Failed to load tasks");
@@ -617,7 +658,7 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                       </div>
                       <div>
                         <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {postedTasks.filter(t => t.status === 'open' || t.status === 'in_progress').length}
+                          {postedTasks.filter(t => t.status === 'open' || t.status === 'pending' || t.status === 'in_progress' || t.status === 'pending_completion').length}
                         </div>
                         <div className="text-xs text-muted-foreground">Active Tasks</div>
                       </div>
@@ -805,32 +846,52 @@ export function ProfilePage({ onNavigate, userType = 'owner' }: ProfilePageProps
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <h3 style={{ fontWeight: 600 }}>{task.title}</h3>
-                                <Badge 
-                                  className={
-                                    task.status === 'open'
-                                      ? 'bg-accent !text-white border-transparent' 
-                                      : task.status === 'in_progress'
-                                      ? 'bg-chart-5 !text-white border-transparent'
-                                      : task.status === 'completed'
-                                      ? 'bg-primary !text-white border-transparent'
-                                      : 'bg-secondary !text-secondary-foreground border-transparent'
-                                  }
-                                >
-                                  {task.status === 'open' ? 'pending' : task.status.replace('_', ' ')}
-                                </Badge>
+                                {task.status && (
+                                  <Badge 
+                                    className={
+                                      task.status.trim() === 'open'
+                                        ? 'bg-accent !text-white border-transparent' 
+                                        : task.status.trim() === 'pending'
+                                        ? 'bg-chart-6 !text-white border-transparent'
+                                        : task.status.trim() === 'in_progress'
+                                        ? 'bg-chart-5 !text-white border-transparent'
+                                        : task.status.trim() === 'pending_completion'
+                                        ? 'bg-chart-7 !text-white border-transparent'
+                                        : task.status.trim() === 'completed'
+                                        ? 'bg-primary !text-white border-transparent'
+                                        : 'bg-secondary !text-secondary-foreground border-transparent'
+                                    }
+                                  >
+                                    {task.status.trim() === 'open' 
+                                      ? 'open' 
+                                      : task.status.trim() === 'pending'
+                                      ? 'pending'
+                                      : task.status.trim() === 'pending_completion' 
+                                      ? 'pending completion' 
+                                      : task.status.replace(/_/g, ' ')}
+                                  </Badge>
+                                )}
                               </div>
                               {userType === 'owner' ? (
-                                task.status === 'open' && (
-                                  <button 
-                                    onClick={() => applicantsCount > 0 && handleViewApplicants(task)}
-                                    className={`text-sm text-muted-foreground flex items-center gap-2 ${
-                                      applicantsCount > 0 ? 'hover:text-primary cursor-pointer' : 'cursor-default'
-                                    }`}
-                                  >
-                                    <Users className="w-4 h-4" />
-                                    {applicantsCount} application{applicantsCount !== 1 ? 's' : ''} received
-                                  </button>
-                                )
+                                <>
+                                  {task.status === 'open' && (
+                                    <button 
+                                      onClick={() => applicantsCount > 0 && handleViewApplicants(task)}
+                                      className={`text-sm text-muted-foreground flex items-center gap-2 ${
+                                        applicantsCount > 0 ? 'hover:text-primary cursor-pointer' : 'cursor-default'
+                                      }`}
+                                    >
+                                      <Users className="w-4 h-4" />
+                                      {applicantsCount} application{applicantsCount !== 1 ? 's' : ''} received
+                                    </button>
+                                  )}
+                                  {task.status === 'pending_completion' && (
+                                    <p className="text-sm text-yellow-600 flex items-center gap-2">
+                                      <Clock className="w-4 h-4" />
+                                      Waiting for your confirmation
+                                    </p>
+                                  )}
+                                </>
                               ) : (
                                 <div className="text-sm text-muted-foreground space-y-1">
                                   {task.date && (

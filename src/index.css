@@ -1587,6 +1587,14 @@
     background-color: var(--chart-5);
   }
 
+  .bg-chart-6 {
+    background-color: var(--chart-6);
+  }
+
+  .bg-chart-7 {
+    background-color: var(--chart-7);
+  }
+
   .bg-chart-5\/5 {
     background-color: var(--chart-5);
   }
@@ -3556,6 +3564,8 @@
   --chart-3: #e8ddd0;
   --chart-4: #a89070;
   --chart-5: #d9734d;
+  --chart-6: #f6c927;
+  --chart-7: #3151a2;
   --radius: 1rem;
   --sidebar: #faf6f0;
   --sidebar-foreground: #3b3630;
@@ -3594,6 +3604,8 @@
   --chart-3: oklch(.769 .188 70.08);
   --chart-4: oklch(.627 .265 303.9);
   --chart-5: oklch(.645 .246 16.439);
+  --chart-6: oklch(.645 .246 16.439);
+  --chart-7: oklch(.315 .246 16.439);
   --sidebar: oklch(.205 0 0);
   --sidebar-foreground: oklch(.985 0 0);
   --sidebar-primary: oklch(.488 .243 264.376);

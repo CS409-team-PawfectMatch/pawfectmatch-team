@@ -33,6 +33,7 @@ interface Task {
     _id: string;
     name: string;
     profilePhoto?: string;
+    rating?: number;
   };
   status: string;
 }
@@ -91,6 +92,14 @@ export function TasksPage({ onNavigate }: TasksPageProps) {
   // Only show open tasks
   filteredTasks = filteredTasks.filter(task => task.status === "open");
 
+  // Format rating for display
+  const formatRating = (rating?: number): string => {
+    if (rating === undefined || rating === null || rating === 0) {
+      return 'No rating';
+    }
+    return rating.toFixed(1);
+  };
+
   // Format task display
   const formatTaskForDisplay = (task: Task) => {
     const petDisplay = task.pet 
@@ -108,6 +117,9 @@ export function TasksPage({ onNavigate }: TasksPageProps) {
     // Capitalize first letter of type
     const typeDisplay = task.type ? task.type.charAt(0).toUpperCase() + task.type.slice(1) : 'Task';
     
+    // Get owner's rating (average from reviews)
+    const ownerRating = task.postedBy?.rating;
+    
     return {
       id: task._id,
       title: task.title,
@@ -117,7 +129,7 @@ export function TasksPage({ onNavigate }: TasksPageProps) {
       location: task.location,
       time: timeDisplay,
       reward: rewardDisplay,
-      rating: 4.8, // Fallback rating (not in backend yet)
+      rating: formatRating(ownerRating),
     };
   };
 

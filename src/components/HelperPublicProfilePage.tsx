@@ -8,7 +8,7 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
-import { Star, Shield, MessageCircle, CheckCircle2, TrendingUp, Clock, ArrowLeft, Briefcase } from "lucide-react";
+import { Star, Shield, MessageCircle, CheckCircle2, Clock, ArrowLeft, Briefcase, MessageSquare } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { toast } from "sonner";
 import { api } from "../lib/api";
@@ -312,13 +312,13 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                 <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-accent" />
+                      <MessageSquare className="w-6 h-6 text-accent" />
                     </div>
                     <div>
                       <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {rating > 0 ? rating.toFixed(1) : '—'}
+                        {reviews.length}
                       </div>
-                      <div className="text-xs text-muted-foreground">Rating</div>
+                      <div className="text-xs text-muted-foreground">Reviews</div>
                     </div>
                   </div>
                 </Card>
@@ -344,7 +344,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                       <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>
                         {rating > 0 ? rating.toFixed(1) : '—'}
                       </div>
-                      <div className="text-xs text-muted-foreground">Reviews</div>
+                      <div className="text-xs text-muted-foreground">Rating</div>
                     </div>
                   </div>
                 </Card>

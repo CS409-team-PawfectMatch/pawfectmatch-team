@@ -657,38 +657,6 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
           {/* Third Row: Task Status / Apply Card - Full Width (only when status is not open) */}
           {task.status !== "open" && (
             <div>
-              {/* Apply Card - Show for helpers when helper is assigned */}
-              {isHelper() && !isTaskOwner && task.assignedTo && (
-                <Card className="p-6 border-0 shadow-md bg-secondary/20">
-                  <h3 className="mb-4" style={{ fontWeight: 600 }}>Apply for this Task</h3>
-                  <div className="space-y-4">
-                    <div className="bg-white p-4 rounded-xl">
-                      <div className="text-sm text-muted-foreground mb-1">You'll earn</div>
-                      <div className="text-primary" style={{ fontWeight: 700, fontSize: '36px' }}>{rewardDisplay}</div>
-                      <div className="text-sm text-muted-foreground">per session</div>
-                    </div>
-                    <Button 
-                      size="lg" 
-                      className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                      onClick={handleApply}
-                      disabled={applying || hasApplied}
-                    >
-                      {applying ? 'Applying...' : hasApplied ? 'Already Applied' : 'Apply Now'}
-                    </Button>
-                    {hasApplied && (
-                      <p className="text-xs text-center text-primary">
-                        Your application has been submitted
-                      </p>
-                    )}
-                    {!hasApplied && (
-                      <p className="text-xs text-center text-muted-foreground">
-                        You'll be able to chat with the owner after applying
-                      </p>
-                    )}
-                  </div>
-                </Card>
-              )}
-
               {/* Task Status - Show for owner or helper when status is not open */}
               {((isTaskOwner || isTaskHelper)) && (
                 <Card className="p-4 border-0 shadow-md">

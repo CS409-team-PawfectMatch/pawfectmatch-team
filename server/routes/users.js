@@ -1,5 +1,6 @@
 import express from 'express';
 import User from '../models/user.js';
+import Review from '../models/review.js';
 import { addRole, addRoleToCurrentUser, uploadProfilePhoto, updateUserProfile } from '../controllers/userController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 import upload from '../middleware/uploadMiddleware.js';
@@ -61,6 +62,28 @@ router.post('/', async (req, res) => {
 
 // PATCH /api/users/:id/add-role - Add a role to a user (protected)
 router.patch('/:id/add-role', verifyToken, addRole);
+
+// GET /api/users/:id/reviews - Get reviews for a user
+router.get('/:id/reviews', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reviews = await Review.find({ reviewee: id })
+      .populate('reviewer', 'name profilePhoto')
+      .populate('task', 'title')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: reviews,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching reviews',
+      error: error.message,
+    });
+  }
+});
 
 // ===========================================
 // Single parameter routes (must come last)

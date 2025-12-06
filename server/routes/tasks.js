@@ -6,6 +6,7 @@ import {
   applyToTask,
   assignHelper,
   completeTask,
+  submitReview,
 } from '../controllers/taskController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 import { requireRole } from '../middleware/authMiddleware.js';
@@ -27,6 +28,9 @@ router.post('/:id/assign', verifyToken, requireRole('owner'), assignHelper);
 
 // POST /api/tasks/:id/complete - Complete task (owner only)
 router.post('/:id/complete', verifyToken, requireRole('owner'), completeTask);
+
+// POST /api/tasks/:id/review - Submit review for completed task (owner or helper)
+router.post('/:id/review', verifyToken, submitReview);
 
 // GET /api/tasks/:id - Get a single task by ID (public)
 router.get('/:id', getTaskById);

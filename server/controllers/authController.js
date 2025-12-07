@@ -90,6 +90,8 @@ export const register = async (req, res) => {
       roles: user.roles,
       bio: user.bio,
       profilePhoto: user.profilePhoto,
+      location: user.location,
+      expectedHourlyRate: user.expectedHourlyRate,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -155,6 +157,8 @@ export const login = async (req, res) => {
       roles: user.roles,
       bio: user.bio,
       profilePhoto: user.profilePhoto,
+      location: user.location,
+      expectedHourlyRate: user.expectedHourlyRate,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

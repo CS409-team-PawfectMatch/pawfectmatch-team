@@ -205,9 +205,11 @@ export const updateUserProfile = async (req, res) => {
     }
 
     // Update user fields
-    const { name, bio, profilePhoto } = req.body;
+    const { name, bio, location, expectedHourlyRate, profilePhoto } = req.body;
     if (name) user.name = name;
     if (bio !== undefined) user.bio = bio;
+    if (location !== undefined) user.location = location;
+    if (expectedHourlyRate !== undefined) user.expectedHourlyRate = expectedHourlyRate;
     if (profilePhoto) user.profilePhoto = profilePhoto;
 
     await user.save();

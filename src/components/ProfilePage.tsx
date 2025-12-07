@@ -78,6 +78,7 @@ interface ProfileData {
   username: string;
   bio: string;
   location: string;
+  expectedHourlyRate: number;
   profilePhoto: string;
 }
 
@@ -142,7 +143,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
   const getProfileData = (): ProfileData => ({
     username: user?.name || "",
     bio: user?.bio || "",
-    location: "", // Location not in user model yet
+    location: user?.location || "",
+    expectedHourlyRate: user?.expectedHourlyRate || 0,
     profilePhoto: user?.profilePhoto || "",
   });
 
@@ -388,6 +390,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     const updateData = {
       name: data.username,
       bio: data.bio,
+      location: data.location,
+      expectedHourlyRate: data.expectedHourlyRate,
       profilePhoto: data.profilePhoto
     };
     
@@ -400,6 +404,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
         ...user,
         name: response.data.name,
         bio: response.data.bio,
+        location: response.data.location,
+        expectedHourlyRate: response.data.expectedHourlyRate,
         profilePhoto: response.data.profilePhoto
       });
       
@@ -580,8 +586,14 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex flex-col gap-1 text-muted-foreground">
                     <span>{user?.email || ""}</span>
+                    {user?.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        <span>{user.location}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -671,13 +683,13 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                   <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-chart-5/10 rounded-full flex items-center justify-center">
-                        <Clock className="w-6 h-6 text-chart-5" />
+                        <TrendingUp className="w-6 h-6 text-chart-5" />
                       </div>
                       <div>
                         <div className="text-chart-5" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear()}
+                          ${user?.expectedHourlyRate ? user.expectedHourlyRate.toFixed(0) : '—'}
                         </div>
-                        <div className="text-xs text-muted-foreground">Member Since</div>
+                        <div className="text-xs text-muted-foreground">Expected hourly rate</div>
                       </div>
                     </div>
                   </Card>
@@ -737,13 +749,13 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                   <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-chart-5/10 rounded-full flex items-center justify-center">
-                        <Clock className="w-6 h-6 text-chart-5" />
+                        <TrendingUp className="w-6 h-6 text-chart-5" />
                       </div>
                       <div>
                         <div className="text-chart-5" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear()}
+                          ${user?.expectedHourlyRate ? user.expectedHourlyRate.toFixed(0) : '—'}
                         </div>
-                        <div className="text-xs text-muted-foreground">Member Since</div>
+                        <div className="text-xs text-muted-foreground">Expected hourly rate</div>
                       </div>
                     </div>
                   </Card>

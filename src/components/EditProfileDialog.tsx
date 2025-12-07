@@ -85,15 +85,13 @@ export function EditProfileDialog({ open, onOpenChange, profileData, onSave, onP
       console.log('Upload response success:', response.success);
       
       if (response.success && response.data) {
-        // Backend returns { success: true, data: updatedUser }
-        // updatedUser is the full user object with profilePhoto field
-        const userData = response.data as any;
-        const photoUrl = userData.profilePhoto || userData.data?.profilePhoto;
+        // Backend returns { success: true, data: { ...user, profilePhoto } }
+        const photoUrl = response.data.profilePhoto;
         
         console.log('Response data structure:', {
           responseData: response.data,
           photoUrl: photoUrl,
-          hasProfilePhoto: !!userData.profilePhoto
+          hasProfilePhoto: !!photoUrl
         });
         
         if (photoUrl) {
@@ -122,14 +120,16 @@ export function EditProfileDialog({ open, onOpenChange, profileData, onSave, onP
         let errorMsg = "Failed to upload photo";
         if (response.message) {
           errorMsg = response.message;
-        } else if (response.data) {
-          if (typeof response.data === 'string') {
-            errorMsg = response.data;
-          } else if (response.data.message) {
-            errorMsg = response.data.message;
-          } else if (response.data.error) {
-            errorMsg = response.data.error;
+        } else if (response.data && typeof response.data === 'object') {
+          // Handle case where response.data might contain error information
+          const dataObj = response.data as Record<string, any>;
+          if (dataObj.message) {
+            errorMsg = dataObj.message;
+          } else if (dataObj.error) {
+            errorMsg = dataObj.error;
           }
+        } else if (response.data && typeof response.data === 'string') {
+          errorMsg = response.data;
         }
         
         toast.error(errorMsg);

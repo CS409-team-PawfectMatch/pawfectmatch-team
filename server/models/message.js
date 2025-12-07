@@ -22,7 +22,11 @@ const messageSchema = new mongoose.Schema({
   read: {
     type: Boolean,
     default: false
-  }
+  },
+  deletedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 });
 
 const Message = mongoose.model('Message', messageSchema);

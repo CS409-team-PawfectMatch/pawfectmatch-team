@@ -11,9 +11,14 @@ router.get('/conversation/:userId', verifyToken, async (req, res) => {
     const currentUserId = req.user.id;
     
     const messages = await Message.find({
-      $or: [
-        { sender: currentUserId, recipient: userId },
-        { sender: userId, recipient: currentUserId }
+      $and: [
+        {
+          $or: [
+            { sender: currentUserId, recipient: userId },
+            { sender: userId, recipient: currentUserId }
+          ]
+        },
+        { deletedBy: { $ne: currentUserId } }
       ]
     }).sort({ timestamp: 1 })
       .populate('sender', 'name profilePhoto')
@@ -30,15 +35,17 @@ router.get('/conversations', verifyToken, async (req, res) => {
   try {
     const currentUserId = req.user.id;
     
-    // 获取与当前用户相关的所有唯一对话伙伴（排除自己）
+    // 获取与当前用户相关的所有唯一对话伙伴（排除自己和已删除的对话）
     const sentMessages = await Message.find({ 
       sender: currentUserId,
-      recipient: { $ne: currentUserId } // 排除发送给自己
+      recipient: { $ne: currentUserId }, // 排除发送给自己
+      deletedBy: { $ne: currentUserId } // 排除已删除的对话
     }).distinct('recipient');
       
     const receivedMessages = await Message.find({ 
       recipient: currentUserId,
-      sender: { $ne: currentUserId } // 排除发送给自己
+      sender: { $ne: currentUserId }, // 排除发送给自己
+      deletedBy: { $ne: currentUserId } // 排除已删除的对话
     }).distinct('sender');
     
     // 合并发送和接收的用户ID
@@ -50,9 +57,14 @@ router.get('/conversations', verifyToken, async (req, res) => {
     for (const participantId of participantIds) {
       // 获取与该参与者最新的消息
       const latestMessage = await Message.findOne({
-        $or: [
-          { sender: currentUserId, recipient: participantId },
-          { sender: participantId, recipient: currentUserId }
+        $and: [
+          {
+            $or: [
+              { sender: currentUserId, recipient: participantId },
+              { sender: participantId, recipient: currentUserId }
+            ]
+          },
+          { deletedBy: { $ne: currentUserId } }
         ]
       }).sort({ timestamp: -1 })
         .populate('sender', 'name profilePhoto')
@@ -63,7 +75,8 @@ router.get('/conversations', verifyToken, async (req, res) => {
         const unreadCount = await Message.countDocuments({
           sender: participantId,
           recipient: currentUserId,
-          read: false
+          read: false,
+          deletedBy: { $ne: currentUserId }
         });
         
         conversations.push({
@@ -82,21 +95,26 @@ router.get('/conversations', verifyToken, async (req, res) => {
   }
 });
 
-// 删除用户与特定用户的对话记录
+// 删除用户与特定用户的对话记录（逻辑删除）
 router.delete('/conversation/:userId', verifyToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const currentUserId = req.user.id;
     
-    // 删除双方之间的所有消息
-    const result = await Message.deleteMany({
-      $or: [
-        { sender: currentUserId, recipient: userId },
-        { sender: userId, recipient: currentUserId }
-      ]
-    });
+    // 将对话标记为对当前用户已删除，而不是物理删除
+    const result = await Message.updateMany(
+      {
+        $or: [
+          { sender: currentUserId, recipient: userId },
+          { sender: userId, recipient: currentUserId }
+        ]
+      },
+      {
+        $addToSet: { deletedBy: currentUserId }
+      }
+    );
     
-    res.json({ success: true, message: `Deleted ${result.deletedCount} messages` });
+    res.json({ success: true, message: `Marked ${result.modifiedCount} messages as deleted for user ${currentUserId}` });
   } catch (error) {
     console.error('删除对话记录错误:', error);
     res.status(500).json({ success: false, message: error.message });

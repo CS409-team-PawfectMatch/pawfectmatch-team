@@ -50,9 +50,9 @@ interface Conversation {
   time: string;
   unread: number;
   online: boolean;
-  taskType?: string;
   messages: Message[];
   participantId: string;
+  timestamp: string;
 }
 
 export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) {
@@ -113,9 +113,9 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
             time: new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             unread: conv.unread,
             online: false,
-            taskType: "Pet Care",
             messages: [],
-            participantId: conv.participantId
+            participantId: conv.participantId,
+            timestamp: conv.timestamp
           });
         }
       }
@@ -152,9 +152,9 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
             time: "Just now",
             unread: 0,
             online: true,
-            taskType: "Pet Care",
             messages: [],
-            participantId: selectedUserId
+            participantId: selectedUserId,
+            timestamp: new Date().toISOString()
           };
           
           // Add new conversation to the beginning of the list
@@ -221,7 +221,8 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
               ...updatedConversations[existingIndex],
               lastMessage: message.content,
               time: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              unread: updatedConversations[existingIndex].unread + 1
+              unread: updatedConversations[existingIndex].unread + 1,
+              timestamp: message.timestamp
             };
             return updatedConversations;
           } else {
@@ -235,9 +236,9 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
               time: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               unread: 1,
               online: false,
-              taskType: "Pet Care",
               messages: [],
-              participantId: message.sender._id
+              participantId: message.sender._id,
+              timestamp: message.timestamp
             }, ...prev];
           }
         });
@@ -372,7 +373,8 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
             conv._id === selectedConversation._id ? { 
               ...conv, 
               lastMessage: newMessage.content,
-              time: "Just Now"
+              time: new Date(newMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: newMessage.timestamp
             } : conv
           ));
           
@@ -386,7 +388,10 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
 
   const filteredConversations = conversations.filter((conv) =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase()) && conv.participantId !== user?._id
-  );
+  ).sort((a, b) => {
+    // Sort by timestamp in descending order (newest first)
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
 
   const handleDeleteConversation = async (participantId: string) => {
     if (!user) return;
@@ -526,11 +531,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                               </DropdownMenu>
                             </div>
                           </div>
-                          {conv.taskType && (
-                            <Badge variant="outline" className="mb-1 text-xs border-primary/30 text-primary bg-primary/5">
-                              {conv.taskType}
-                            </Badge>
-                          )}
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-muted-foreground truncate">
                               {conv.lastMessage}
@@ -594,11 +594,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                             <div className="w-2 h-2 bg-green-500 rounded-full" />
                           )}
                         </div>
-                        {selectedConversation.taskType && (
-                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                            {selectedConversation.taskType}
-                          </Badge>
-                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -608,14 +603,14 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                       <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary transition-colors">
                         <Video className="w-4 h-4" />
                       </Button> */}
-                      <DropdownMenu>
+                      {/* <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary transition-colors">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {/* <DropdownMenuItem>
+                          <DropdownMenuItem>
                             View Profile
                           </DropdownMenuItem>
                           <DropdownMenuItem>
@@ -623,9 +618,9 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             Block User
-                          </DropdownMenuItem> */}
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu>
+                      </DropdownMenu> */}
                     </div>
                   </div>
 

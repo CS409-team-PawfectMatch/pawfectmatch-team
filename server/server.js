@@ -14,6 +14,12 @@ import { Server } from 'socket.io';
 // Load environment variables
 dotenv.config({ path: path.resolve('./server/.env') });
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",               
+  "https://cs409final-alpha.vercel.app",   
+];
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -23,7 +29,7 @@ const server = http.createServer(app);
 // 初始化 Socket.IO，配置 CORS
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // 前端地址
+    origin: allowedOrigins, 
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -34,7 +40,7 @@ export const getIO = () => io;
 
 // Middleware
 app.use(cors({
-  origin: "http://localhost:3000", // 前端地址
+  origin: allowedOrigins, 
   credentials: true
 }));
 app.use(express.json());
@@ -80,7 +86,7 @@ io.on('connection', (socket) => {
       // 发送确认给发送者
       socket.emit('message_sent', message);
     } catch (error) {
-      console.error('发送消息错误:', error);
+      console.error('Message sending error:', error);
     }
   });
 });

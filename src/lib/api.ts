@@ -30,7 +30,7 @@ interface Message {
 }
 
 class ApiClient {
-  private getAuthHeaders(contentType?: string): HeadersInit {
+  private getAuthHeaders(contentType: string = 'application/json'): HeadersInit {
     const token = localStorage.getItem('token');
     const headers: HeadersInit = {};
 

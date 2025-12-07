@@ -642,7 +642,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                       </div>
                       <div>
                         <div className="text-primary" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {assignedTasks.filter(t => t.status === 'completed').length}
+                          {assignedTasks.filter(t => t.assignedTo?._id === user._id && t.status === 'completed').length}
                         </div>
                         <div className="text-xs text-muted-foreground">Tasks Done</div>
                       </div>
@@ -655,7 +655,14 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                       </div>
                       <div>
                         <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                          {assignedTasks.length > 0 ? Math.round((assignedTasks.filter(t => t.status === 'completed').length / assignedTasks.length) * 100) : 0}%
+                          {(() => {
+                            // Only count tasks that are actually assigned to the user (not just applied)
+                            const trulyAssignedTasks = assignedTasks.filter(t => t.assignedTo?._id === user._id);
+                            const completedCount = trulyAssignedTasks.filter(t => t.status === 'completed').length;
+                            return trulyAssignedTasks.length > 0 
+                              ? Math.round((completedCount / trulyAssignedTasks.length) * 100) 
+                              : 0;
+                          })()}%
                         </div>
                         <div className="text-xs text-muted-foreground">Completion</div>
                       </div>

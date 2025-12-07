@@ -1,5 +1,5 @@
 import User from '../models/user.js';
-const useCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
+const useCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
 const uploadMiddleware = useCloudinary 
   ? (await import('../middleware/cloudinaryUploadMiddleware.js')).default
   : (await import('../middleware/uploadMiddleware.js')).default;
@@ -168,14 +168,17 @@ export const uploadProfilePhoto = async (req, res) => {
     // Update user's profile photo field
     // 根据存储类型构造图片URL
     let photoUrl;
-    if (useCloudinary && req.file.secure_url) {
+    if (useCloudinary && req.file.path) {
       // Cloudinary直接返回secure_url
-      photoUrl = req.file.secure_url;
-    } else {
+      photoUrl = req.file.path;
+    } else if (!useCloudinary && req.file.filename) {
       // 本地存储需要构造URL
       const protocol = req.protocol || 'http';
       const host = req.get('host') || 'localhost:3001';
       photoUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    } else {
+      // Fallback
+      photoUrl = req.file.path || req.file.filename;
     }
     user.profilePhoto = photoUrl;
     await user.save();
@@ -191,7 +194,10 @@ export const uploadProfilePhoto = async (req, res) => {
 
     res.json({
       success: true,
-      data: updatedUser,
+      data: {
+        ...updatedUser.toObject(),
+        profilePhoto: updatedUser.profilePhoto
+      },
       message: 'Profile photo uploaded successfully',
     });
   } catch (error) {

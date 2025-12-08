@@ -114,7 +114,8 @@ function AppContent() {
       navigate(url);
     } else if (page === "helper-public-profile" && (params?.userId || params?.helperId)) {
       const targetUserId = params?.userId || params?.helperId;
-      navigate(`/helper/${targetUserId}`);
+      const roleQuery = params?.viewRole ? `?role=${params.viewRole}` : "";
+      navigate(`/helper/${targetUserId}${roleQuery}`);
     } else if (pagePathMap[page]) {
       navigate(pagePathMap[page]);
     } else {
@@ -183,6 +184,9 @@ function AppContent() {
     } else if (location.pathname.startsWith("/helper/")) {
       const userId = location.pathname.split("/")[2];
       navigationParams.userId = userId;
+      if (queryParams.role) {
+        navigationParams.viewRole = queryParams.role;
+      }
     } else if (location.pathname === "/messages") {
       // Extract selectedUserId from query string for messages page
       if (queryParams.selectedUserId) {
@@ -219,7 +223,7 @@ function AppContent() {
       case "helper-profile":
         return <ProfilePage onNavigate={handleNavigate} userType="helper" activeTab={navigationParams.activeTab} />;
       case "helper-public-profile":
-        return <HelperPublicProfilePage onNavigate={handleNavigate} userId={navigationParams.userId} />;
+        return <HelperPublicProfilePage onNavigate={handleNavigate} userId={navigationParams.userId} viewRole={navigationParams.viewRole as 'helper' | 'owner' | undefined} />;
       case "view-profile":
         // View helper profile - redirect to public helper profile
         return <HelperPublicProfilePage onNavigate={handleNavigate} userId={navigationParams.userId} />;

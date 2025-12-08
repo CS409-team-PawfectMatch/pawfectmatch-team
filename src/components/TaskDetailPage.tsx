@@ -76,6 +76,7 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [applicantsDialogOpen, setApplicantsDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
@@ -433,6 +434,25 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
     }
   };
 
+  const handleCancelTask = async () => {
+    if (!taskId) return;
+
+    setCanceling(true);
+    try {
+      const response = await api.post(`/tasks/${taskId}/cancel`, {});
+      if (response.success) {
+        toast.success("Task cancelled successfully.");
+        await loadTask(); // Refresh task state
+      } else {
+        toast.error(response.message || "Failed to cancel task");
+      }
+    } catch (error) {
+      toast.error("Failed to cancel task");
+    } finally {
+      setCanceling(false);
+    }
+  };
+
   const isTaskOwner = task && user && task.postedBy?._id === user._id;
   const isTaskHelper = task && user && task.assignedTo?._id === user._id;
   const hasApplied = task?.applicants?.some(app => app._id === user?._id);
@@ -561,6 +581,7 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                         task.status === 'pending' ? 'bg-blue-500' :
                         task.status === 'in_progress' ? 'bg-blue-500' :
                         task.status === 'pending_confirmation' ? 'bg-yellow-500' :
+                        task.status === 'cancelled' ? 'bg-green-500' :
                         task.status === 'completed' ? 'bg-gray-500' :
                         'bg-primary'
                       } text-white`}
@@ -724,6 +745,8 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                         ? 'bg-chart-5 !text-white border-transparent'
                         : task.status === 'pending_confirmation'
                         ? 'bg-chart-7 !text-white border-transparent'
+                        : task.status === 'cancelled'
+                        ? 'bg-chart-8 !text-white border-transparent'
                         : task.status === 'completed'
                         ? 'bg-primary !text-white border-transparent'
                         : 'bg-secondary !text-secondary-foreground border-transparent'
@@ -814,6 +837,18 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                         </p>
                       )}
                     </>
+                  )}
+
+                  {/* Cancel Task (owner) */}
+                  {isTaskOwner && task.status !== "completed" && task.status !== "cancelled" && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-red-500 text-red-600 hover:bg-red-50"
+                      onClick={handleCancelTask}
+                      disabled={canceling}
+                    >
+                      {canceling ? 'Cancelling...' : 'Cancel Task'}
+                    </Button>
                   )}
 
                   {/* Completed */}

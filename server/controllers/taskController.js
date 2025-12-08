@@ -403,6 +403,58 @@ export const confirmTask = async (req, res) => {
   }
 };
 
+// Cancel task (owner only)
+export const cancelTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const task = await Task.findById(id);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found',
+      });
+    }
+
+    // Only the task owner can cancel
+    if (task.postedBy.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the task owner can cancel this task',
+      });
+    }
+
+    // Prevent cancelling completed tasks
+    if (task.status === 'completed' || task.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'This task cannot be cancelled',
+      });
+    }
+
+    task.status = 'cancelled';
+    await task.save();
+
+    const updatedTask = await Task.findById(id)
+      .populate('pet', 'name type photos')
+      .populate('postedBy', 'name profilePhoto ownerRating')
+      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('applicants', 'name profilePhoto helperRating location specialties bio');
+
+    res.json({
+      success: true,
+      data: updatedTask,
+      message: 'Task cancelled successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error cancelling task',
+    });
+  }
+};
+
 // Submit review for a completed task
 export const submitReview = async (req, res) => {
   try {
@@ -585,4 +637,3 @@ export const submitReview = async (req, res) => {
     });
   }
 };
-

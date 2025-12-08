@@ -1221,6 +1221,8 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                                         ? 'bg-chart-5 !text-white border-transparent'
                                         : taskStatus === 'pending_confirmation'
                                         ? 'bg-chart-7 !text-white border-transparent'
+                                        : taskStatus === 'cancelled'
+                                        ? 'bg-chart-8 !text-white border-transparent'
                                         : taskStatus === 'completed'
                                         ? 'bg-primary !text-white border-transparent'
                                         : 'bg-secondary !text-secondary-foreground border-transparent'

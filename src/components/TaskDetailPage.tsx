@@ -52,10 +52,27 @@ interface Task {
     _id: string;
     name: string;
     profilePhoto?: string;
+    helperRating?: number;
+    rating?: number;
   }>;
 }
 
-export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: TaskDetailPageProps) {
+// 默认宠物头像映射
+const DEFAULT_PET_IMAGES: Record<string, string> = {
+  dog: "https://placehold.co/600x400/FFB84D/FFFFFF?text=Dog",
+  cat: "https://placehold.co/600x400/FFB6C1/FFFFFF?text=Cat",
+  bird: "https://placehold.co/600x400/87CEEB/FFFFFF?text=Bird",
+  rabbit: "https://placehold.co/600x400/DDA0DD/FFFFFF?text=Rabbit",
+  other: "https://placehold.co/600x400/98FB98/FFFFFF?text=Pet",
+};
+
+// 获取宠物默认图片的函数
+const getDefaultPetImage = (petType?: string) => {
+  if (!petType) return DEFAULT_PET_IMAGES.other;
+  return DEFAULT_PET_IMAGES[petType.toLowerCase()] || DEFAULT_PET_IMAGES.other;
+};
+
+export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: TaskDetailPageProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -476,7 +493,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
     );
   }
 
-  const petImage = task?.pet?.photos?.[0] ?? "https://placehold.co/600x400?text=No+Pet+Photo";
+  const petImage = task?.pet?.photos?.[0] ?? getDefaultPetImage(task?.pet?.type);
 
   // Format reward to ensure only one dollar sign
   const formatRewardDisplay = (reward?: string, budget?: number): string => {
@@ -558,7 +575,7 @@ export function TaskDetailPage({ onNavigate, taskId, returnTo, activeTab }: Task
               </div>
 
               <div className="grid sm:grid-cols-3 gap-4 mb-6">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-33">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>

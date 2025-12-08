@@ -21,6 +21,20 @@ import { useUser } from "../hooks/useUser";
 import { Users } from "lucide-react";
 import { User as UserIcon } from "lucide-react";
 
+// 默认宠物头像映射
+const DEFAULT_PET_IMAGES: Record<string, string> = {
+  dog: "https://placehold.co/600x600/FFB84D/FFFFFF?text=Dog",
+  cat: "https://placehold.co/600x600/FFB6C1/FFFFFF?text=Cat",
+  bird: "https://placehold.co/600x600/87CEEB/FFFFFF?text=Bird",
+  rabbit: "https://placehold.co/600x600/DDA0DD/FFFFFF?text=Rabbit",
+  other: "https://placehold.co/600x600/98FB98/FFFFFF?text=Pet",
+};
+
+// 获取宠物默认图片的函数
+const getDefaultPetImage = (petType: string) => {
+  return DEFAULT_PET_IMAGES[petType?.toLowerCase()] || DEFAULT_PET_IMAGES.other;
+};
+
 interface ProfilePageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
   userType?: 'owner' | 'helper';
@@ -1104,7 +1118,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                       <div className="aspect-square relative overflow-hidden">
                         <ImageWithFallback
                           src={
-                            pet.photos?.[0] ?? "https://placehold.co/600x400?text=No+Pet+Photo"
+                            pet.photos?.[0] ?? getDefaultPetImage(pet.type)
                           }
                           alt={pet.name}
                           className="w-full h-full object-cover"

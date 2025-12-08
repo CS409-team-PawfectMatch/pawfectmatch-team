@@ -8,6 +8,21 @@ import { OnboardingModal } from "./OnboardingModal";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { api } from "../lib/api";
 
+// 默认宠物头像映射
+const DEFAULT_PET_IMAGES: Record<string, string> = {
+  dog: "https://placehold.co/600x400/FFB84D/FFFFFF?text=Dog",
+  cat: "https://placehold.co/600x400/FFB6C1/FFFFFF?text=Cat",
+  bird: "https://placehold.co/600x400/87CEEB/FFFFFF?text=Bird",
+  rabbit: "https://placehold.co/600x400/DDA0DD/FFFFFF?text=Rabbit",
+  other: "https://placehold.co/600x400/98FB98/FFFFFF?text=Pet",
+};
+
+// 获取宠物默认图片的函数
+const getDefaultPetImage = (petType?: string) => {
+  if (!petType) return DEFAULT_PET_IMAGES.other;
+  return DEFAULT_PET_IMAGES[petType.toLowerCase()] || DEFAULT_PET_IMAGES.other;
+};
+
 interface LandingPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
@@ -120,7 +135,8 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               
               <div className="rounded-3xl overflow-hidden shadow-2xl transform transition-transform duration-500 hover:scale-105">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1759073178653-b09ba19fa1f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBvd25lciUyMHdhbGtpbmclMjBkb2d8ZW58MXx8fHwxNzYwMzkzMTM0fDA&ixlib=rb-4.1.0&q=80&w=1080"
+                  // src="https://images.unsplash.com/photo-1759073178653-b09ba19fa1f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBvd25lciUyMHdhbGtpbmclMjBkb2d8ZW58MXx8fHwxNzYwMzkzMTM0fDA&ixlib=rb-4.1.0&q=80&w=1080"
+                  src="https://images.unsplash.com/photo-1494947665470-20322015e3a8?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="Person walking dog"
                   className="w-full h-[400px] object-cover"
                 />
@@ -151,7 +167,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
           ) : (
             <div className="grid md:grid-cols-3 gap-6">
               {featuredTasks.map((task, index) => {
-                const imageUrl = task?.pet?.photos?.[0] ?? "https://placehold.co/600x400?text=No+Pet+Photo";
+                const imageUrl = task?.pet?.photos?.[0] ?? getDefaultPetImage(task?.pet?.type);
                 // Format reward to ensure only one dollar sign
                 const formatRewardDisplay = (reward?: string, budget?: number): string => {
                   if (reward) {

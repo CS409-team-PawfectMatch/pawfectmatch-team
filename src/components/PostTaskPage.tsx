@@ -12,6 +12,19 @@ import { useUser } from "../hooks/useUser";
 import { toast } from "sonner";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
+const DEFAULT_PET_IMAGES: Record<string, string> = {
+  dog: "https://placehold.co/600x400/FFB84D/FFFFFF?text=Dog",
+  cat: "https://placehold.co/600x400/FFB6C1/FFFFFF?text=Cat",
+  bird: "https://placehold.co/600x400/87CEEB/FFFFFF?text=Bird",
+  rabbit: "https://placehold.co/600x400/DDA0DD/FFFFFF?text=Rabbit",
+  other: "https://placehold.co/600x400/98FB98/FFFFFF?text=Pet",
+};
+
+const getDefaultPetImage = (petType?: string) => {
+  if (!petType) return DEFAULT_PET_IMAGES.other;
+  return DEFAULT_PET_IMAGES[petType.toLowerCase()] || DEFAULT_PET_IMAGES.other;
+};
+
 interface PostTaskPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
@@ -350,10 +363,18 @@ export function PostTaskPage({ onNavigate }: PostTaskPageProps) {
               {selectedPet && (
                 <Card className="p-4 bg-secondary/20">
                   <div className="flex gap-4">
-                    {selectedPet.photos && selectedPet.photos.length > 0 && (
+                    {selectedPet.photos && selectedPet.photos.length > 0 ? (
                       <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
                         <ImageWithFallback
                           src={selectedPet.photos[0]}
+                          alt={selectedPet.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
+                        <ImageWithFallback
+                          src={getDefaultPetImage(selectedPet.type)}
                           alt={selectedPet.name}
                           className="w-full h-full object-cover"
                         />

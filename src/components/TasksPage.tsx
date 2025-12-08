@@ -9,6 +9,21 @@ import { EmptyState } from "./EmptyState";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 
+// 默认宠物头像映射
+const DEFAULT_PET_IMAGES: Record<string, string> = {
+  dog: "https://placehold.co/600x400/FFB84D/FFFFFF?text=Dog",
+  cat: "https://placehold.co/600x400/FFB6C1/FFFFFF?text=Cat",
+  bird: "https://placehold.co/600x400/87CEEB/FFFFFF?text=Bird",
+  rabbit: "https://placehold.co/600x400/DDA0DD/FFFFFF?text=Rabbit",
+  other: "https://placehold.co/600x400/98FB98/FFFFFF?text=Pet",
+};
+
+// 获取宠物默认图片的函数
+const getDefaultPetImage = (petType?: string) => {
+  if (!petType) return DEFAULT_PET_IMAGES.other;
+  return DEFAULT_PET_IMAGES[petType.toLowerCase()] || DEFAULT_PET_IMAGES.other;
+};
+
 interface TasksPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
@@ -112,7 +127,7 @@ export function TasksPage({ onNavigate }: TasksPageProps) {
       ? `${task.pet.name}${task.pet.type ? ` (${task.pet.type})` : ''}`
       : 'Pet';
     
-    const imageUrl = task?.pet?.photos?.[0] ?? "https://placehold.co/600x400?text=No+Pet+Photo";
+    const imageUrl = task?.pet?.photos?.[0] ?? getDefaultPetImage(task?.pet?.type);
     
     // Format reward to ensure only one dollar sign
     const formatRewardDisplay = (reward?: string, budget?: number): string => {

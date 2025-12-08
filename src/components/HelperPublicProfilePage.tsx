@@ -55,6 +55,9 @@ interface Task {
   assignedTo?: {
     _id: string;
   };
+  postedBy?: {
+    _id: string;
+  } | string;
 }
 
 export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole }: HelperPublicProfilePageProps) {
@@ -147,8 +150,11 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
 
         // Tasks where this user is the owner (posted)
         const posted = allTasks.filter(task => {
-          const postedById = task.postedBy?._id?.toString() || task.postedBy?._id || task.postedBy;
-          return postedById?.toString() === userIdStr;
+          const postedBy = task.postedBy;
+          const postedById = typeof postedBy === 'object'
+            ? postedBy?._id?.toString()
+            : postedBy?.toString();
+          return postedById === userIdStr;
         });
 
         setAssignedTasks(assigned);
@@ -299,8 +305,11 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
   }).length;
 
   const completedAsOwner = postedTasks.filter(t => {
-    const postedById = t.postedBy?._id?.toString() || t.postedBy?._id || t.postedBy;
-    return postedById?.toString() === helperUserId?.toString() && t.status === 'completed';
+    const postedBy = t.postedBy;
+    const postedById = typeof postedBy === 'object'
+      ? postedBy?._id?.toString()
+      : postedBy?.toString();
+    return postedById === helperUserId?.toString() && t.status === 'completed';
   }).length;
 
   const isHelper = helperUser.roles?.includes('helper');
@@ -390,10 +399,10 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
                     </div>
                     <div>
                       <div className="text-primary" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {useHelperRole ? primaryCompletedCount : postedTasks.length}
+                        {useHelperRole ? primaryCompletedCount : primaryCompletedCount}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {useHelperRole ? "Tasks Done" : "Tasks Posted"}
+                        {useHelperRole ? "Tasks Done" : "Tasks Completed"}
                       </div>
                     </div>
                   </div>

@@ -5,8 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import {
-  Star, MapPin, Shield, Edit, Heart, MessageCircle, Calendar,
-  CheckCircle2, TrendingUp, Clock, PawPrint, Award, Briefcase,
+  Star, MapPin, Edit, Heart, Calendar,
+  CheckCircle2, TrendingUp, Clock, PawPrint, Briefcase,
   ArrowLeft, PlusCircle
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";

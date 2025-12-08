@@ -642,7 +642,7 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                 <div className="flex items-center gap-4 mb-4">
                   <Avatar 
                     className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id })}
+                    onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id, viewRole: 'owner' })}
                   >
                     <AvatarImage src={task.postedBy.profilePhoto} alt={task.postedBy.name} />
                     <AvatarFallback className="bg-primary text-white">
@@ -654,7 +654,7 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                       <h4 
                         style={{ fontWeight: 600 }}
                         className="cursor-pointer hover:text-primary transition-colors"
-                        onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id })}
+                        onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id, viewRole: 'owner' })}
                       >
                         {task.postedBy.name}
                       </h4>

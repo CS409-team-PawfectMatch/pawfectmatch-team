@@ -19,6 +19,7 @@ interface HelperPublicProfilePageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
   userId?: string | number;
   helperId?: string | number;
+  viewRole?: 'helper' | 'owner';
 }
 
 interface HelperUser extends UserType {
@@ -54,9 +55,12 @@ interface Task {
   assignedTo?: {
     _id: string;
   };
+  postedBy?: {
+    _id: string;
+  } | string;
 }
 
-export function HelperPublicProfilePage({ onNavigate, userId, helperId }: HelperPublicProfilePageProps) {
+export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole }: HelperPublicProfilePageProps) {
   // Support both userId and helperId for backward compatibility
   const targetUserId = helperId || userId;
   const { loading: userLoading, isAuthenticated } = useUser();
@@ -65,6 +69,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [assignedTasks, setAssignedTasks] = useState<Task[]>([]);
+  const [postedTasks, setPostedTasks] = useState<Task[]>([]);
 
   // Load helper user data
   useEffect(() => {
@@ -85,7 +90,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
 
     loadHelperUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUserId, isAuthenticated, userLoading]);
+  }, [targetUserId, isAuthenticated, userLoading, viewRole]);
 
   const loadHelperUser = async () => {
     if (!targetUserId) return;
@@ -111,7 +116,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
           name: userData.name
         });
         // Use setTimeout to ensure state is updated, but pass roles directly
-        loadReviews(userData._id, userData.roles);
+        loadReviews(userData._id, userData.roles, viewRole);
         // Load tasks to calculate tasks done
         loadTasks(userData._id);
       } else {
@@ -137,21 +142,32 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
         
         const userIdStr = userId.toString();
         
-        // Filter tasks assigned to this user (same logic as ProfilePage)
-        // Use toString() to ensure consistent ID comparison
+        // Tasks where this user is the helper (assigned)
         const assigned = allTasks.filter(task => {
           const assignedToId = task.assignedTo?._id?.toString() || task.assignedTo?._id || task.assignedTo;
           return assignedToId?.toString() === userIdStr;
         });
+
+        // Tasks where this user is the owner (posted)
+        const posted = allTasks.filter(task => {
+          const postedBy = task.postedBy;
+          const postedById = typeof postedBy === 'object'
+            ? postedBy?._id?.toString()
+            : postedBy?.toString();
+          return postedById === userIdStr;
+        });
+
         setAssignedTasks(assigned);
+        setPostedTasks(posted);
       }
     } catch (error) {
       console.error('Failed to load tasks:', error);
       setAssignedTasks([]);
+      setPostedTasks([]);
     }
   };
 
-  const loadReviews = async (userId: string, userRoles?: string[]) => {
+  const loadReviews = async (userId: string, userRoles?: string[], preferredRole?: 'helper' | 'owner') => {
     if (!userId) return;
     
     setLoadingReviews(true);
@@ -171,45 +187,60 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
         helperUserRoles: helperUser?.roles
       });
       
-      // If user has both roles, try helper first, then owner if helper has no reviews
-      // Otherwise, use the role they have
-      let role = isHelper ? 'helper' : (isOwner ? 'owner' : 'helper');
-      let reviewsData: Review[] = [];
-      
-      // Try loading reviews for the primary role
-      console.log(`HelperPublicProfilePage - Loading reviews with role=${role} for userId=${userId}`);
-      let response = await api.get<Review[]>(`/users/${userId}/reviews?role=${role}`);
-      console.log('HelperPublicProfilePage - Reviews API response:', response);
-      
-      if (response.success && response.data) {
-        reviewsData = Array.isArray(response.data) ? response.data : [];
-        console.log(`HelperPublicProfilePage - Reviews for ${role}:`, {
-          reviewsCount: reviewsData.length,
-          reviews: reviewsData
-        });
-      }
-      
-      // If user has both roles and primary role has no reviews, try the other role
-      if (isHelper && isOwner && reviewsData.length === 0 && role === 'helper') {
-        console.log('HelperPublicProfilePage - No helper reviews found, trying owner reviews');
-        role = 'owner';
-        response = await api.get<Review[]>(`/users/${userId}/reviews?role=${role}`);
-        console.log('HelperPublicProfilePage - Owner reviews API response:', response);
-        
+      // Decide primary role: prefer explicit viewRole, otherwise default to helper then owner
+      const primaryRole = preferredRole
+        ? preferredRole
+        : (isHelper ? 'helper' : (isOwner ? 'owner' : 'helper'));
+
+      // Helper to fetch reviews by role
+      const fetchReviewsByRole = async (role: 'helper' | 'owner') => {
+        console.log(`HelperPublicProfilePage - Loading reviews with role=${role} for userId=${userId}`);
+        const response = await api.get<Review[]>(`/users/${userId}/reviews?role=${role}`);
+        console.log(`HelperPublicProfilePage - ${role} reviews API response:`, response);
         if (response.success && response.data) {
-          reviewsData = Array.isArray(response.data) ? response.data : [];
+          const data = Array.isArray(response.data) ? response.data : [];
           console.log(`HelperPublicProfilePage - Reviews for ${role}:`, {
-            reviewsCount: reviewsData.length,
-            reviews: reviewsData
+            reviewsCount: data.length,
+            reviews: data
           });
+          return data;
         }
+        return [];
+      };
+
+      // Fetch all reviews without role filter (fallback)
+      const fetchReviewsAll = async () => {
+        console.log(`HelperPublicProfilePage - Loading reviews without role for userId=${userId}`);
+        const response = await api.get<Review[]>(`/users/${userId}/reviews`);
+        if (response.success && response.data) {
+          const data = Array.isArray(response.data) ? response.data : [];
+          console.log('HelperPublicProfilePage - Reviews without role:', {
+            reviewsCount: data.length,
+            reviews: data
+          });
+          return data;
+        }
+        return [];
+      };
+
+      let reviewsData: Review[] = await fetchReviewsByRole(primaryRole);
+
+      // If explicit role requested but empty, try all reviews (owner role may not be filtered)
+      if (preferredRole && reviewsData.length === 0) {
+        reviewsData = await fetchReviewsAll();
+      }
+
+      // Only fallback to the other role when no explicit preferred role was provided
+      if (!preferredRole && reviewsData.length === 0 && isHelper && isOwner) {
+        const fallbackRole = primaryRole === 'helper' ? 'owner' : 'helper';
+        reviewsData = await fetchReviewsByRole(fallbackRole);
       }
       
       console.log(`HelperPublicProfilePage - Final reviews for ${userId}:`, {
         reviewsCount: reviewsData.length,
         reviews: reviewsData,
         userRoles: roles,
-        finalRole: role
+        finalRole: primaryRole
       });
       setReviews(reviewsData);
     } catch (error) {
@@ -265,16 +296,30 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
     );
   }
 
-  // Calculate tasks done: only count tasks that are actually assigned to the user and completed
+  // Calculate tasks stats based on requested view role
   // Use toString() to ensure consistent ID comparison
   const helperUserId = helperUser._id?.toString() || helperUser._id;
-  const completedTasks = assignedTasks.filter(t => {
+  const completedAsHelper = assignedTasks.filter(t => {
     const assignedToId = t.assignedTo?._id?.toString() || t.assignedTo?._id || t.assignedTo;
     return assignedToId?.toString() === helperUserId?.toString() && t.status === 'completed';
   }).length;
-  // Determine rating based on user's role
+
+  const completedAsOwner = postedTasks.filter(t => {
+    const postedBy = t.postedBy;
+    const postedById = typeof postedBy === 'object'
+      ? postedBy?._id?.toString()
+      : postedBy?.toString();
+    return postedById === helperUserId?.toString() && t.status === 'completed';
+  }).length;
+
   const isHelper = helperUser.roles?.includes('helper');
-  const rating = isHelper 
+  const preferredRole = viewRole === 'owner' ? 'owner' : (viewRole === 'helper' ? 'helper' : undefined);
+  const useHelperRole = preferredRole ? preferredRole === 'helper' : isHelper;
+
+  const primaryTasksCount = useHelperRole ? assignedTasks.length : postedTasks.length;
+  const primaryCompletedCount = useHelperRole ? completedAsHelper : completedAsOwner;
+
+  const rating = useHelperRole
     ? (helperUser.helperRating || helperUser.rating || 0)
     : (helperUser.ownerRating || helperUser.rating || 0);
 
@@ -345,7 +390,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                 {helperUser.bio || "No bio available."}
               </p>
 
-              {/* Helper Stats */}
+              {/* Profile Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <Card className="p-4 border-0 bg-secondary/30 hover:bg-secondary/50 transition-colors">
                   <div className="flex items-center gap-3">
@@ -354,9 +399,11 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                     </div>
                     <div>
                       <div className="text-primary" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {completedTasks}
+                        {useHelperRole ? primaryCompletedCount : postedTasks.length}
                       </div>
-                      <div className="text-xs text-muted-foreground">Tasks Done</div>
+                      <div className="text-xs text-muted-foreground">
+                        {useHelperRole ? "Tasks Done" : "Tasks Posted"}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -367,9 +414,11 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                     </div>
                     <div>
                       <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {reviews.length}
+                        {useHelperRole ? reviews.length : primaryCompletedCount}
                       </div>
-                      <div className="text-xs text-muted-foreground">Reviews</div>
+                      <div className="text-xs text-muted-foreground">
+                        {useHelperRole ? "Reviews" : "Tasks Completed"}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -382,7 +431,9 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
                       <div className="text-yellow-600" style={{ fontWeight: 700, fontSize: '24px' }}>
                         {rating > 0 ? rating.toFixed(1) : '—'}
                       </div>
-                      <div className="text-xs text-muted-foreground">Rating</div>
+                      <div className="text-xs text-muted-foreground">
+                        {useHelperRole ? "Rating" : "Owner Rating"}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -391,40 +442,42 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
           </div>
         </Card>
 
-        {/* Professional Details Section (Read-only) */}
-        <Card className="p-6 mb-6 border-0 shadow-lg">
-          <h2 className="mb-4" style={{ fontWeight: 600, fontSize: '20px' }}>Professional Details</h2>
+        {/* Professional Details Section */}
+        {useHelperRole && (
+          <Card className="p-6 mb-6 border-0 shadow-lg">
+            <h2 className="mb-4" style={{ fontWeight: 600, fontSize: '20px' }}>Professional Details</h2>
 
-          {/* Experience */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Briefcase className="w-5 h-5 text-primary" />
-              <h3 style={{ fontWeight: 600 }}>Experience</h3>
+            {/* Experience */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Briefcase className="w-5 h-5 text-primary" />
+                <h3 style={{ fontWeight: 600 }}>Experience</h3>
+              </div>
+              <p className="text-muted-foreground ml-7">
+                {helperUser.experience && helperUser.experience.trim().length > 0
+                  ? helperUser.experience
+                  : "No experience added yet"}
+              </p>
             </div>
-            <p className="text-muted-foreground ml-7">
-              {helperUser.experience && helperUser.experience.trim().length > 0
-                ? helperUser.experience
-                : "No experience added yet"}
-            </p>
-          </div>
 
-          {/* Service Specialties */}
-          {helperUser.specialties && helperUser.specialties.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Star className="w-5 h-5 text-primary" />
-                <h3 style={{ fontWeight: 600 }}>Service Specialties</h3>
+            {/* Service Specialties */}
+            {helperUser.specialties && helperUser.specialties.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Star className="w-5 h-5 text-primary" />
+                  <h3 style={{ fontWeight: 600 }}>Service Specialties</h3>
+                </div>
+                <div className="flex flex-wrap gap-2 ml-7">
+                  {helperUser.specialties.map((specialty, index) => (
+                    <Badge key={index} className="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5">
+                      {specialty}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2 ml-7">
-                {helperUser.specialties.map((specialty, index) => (
-                  <Badge key={index} className="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5">
-                    {specialty}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
+            )}
+          </Card>
+        )}
 
         {/* Reviews Section */}
         <Card className="p-6 border-0 shadow-lg">
@@ -438,7 +491,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId }: Helper
               icon={Star}
               title="No reviews yet"
               description={
-                helperUser.roles?.includes('helper') 
+                useHelperRole
                   ? "This helper hasn't received any reviews yet."
                   : "This owner hasn't received any reviews yet."
               }

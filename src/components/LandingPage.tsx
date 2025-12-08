@@ -7,6 +7,18 @@ import { HowItWorks } from "./HowItWorks";
 import { OnboardingModal } from "./OnboardingModal";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { api } from "../lib/api";
+import { useUser } from "../hooks/useUser";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "./ui/alert-dialog";
 
 
 const DEFAULT_PET_IMAGES: Record<string, string> = {
@@ -52,6 +64,62 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [featuredTasks, setFeaturedTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const { isAuthenticated, isHelper, user, setUser } = useUser();
+  const [confirmHelperOpen, setConfirmHelperOpen] = useState(false);
+
+  const scrollToHowItWorks = () => {
+    const el = document.getElementById('how-it-works');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleBecomeHelper = () => {
+    if (!isAuthenticated) {
+      onNavigate('auth');
+      return;
+    }
+    if (isHelper()) {
+      toast.info('You are already a helper');
+      return;
+    }
+    setConfirmHelperOpen(true);
+  };
+
+  const handleConfirmAddHelper = async () => {
+    if (!user) {
+      setConfirmHelperOpen(false);
+      onNavigate('auth');
+      return;
+    }
+
+    try {
+      const response = await api.post('/users/add-role', { role: 'helper' });
+      if (response.success && response.data) {
+        setUser(response.data);
+        toast.success('Helper role added! You can now switch to helper view.');
+        onNavigate('helper-profile', { activeTab: 'tasks' });
+      } else {
+        toast.error(response.message || 'Failed to add helper role');
+      }
+    } catch (error) {
+      toast.error('Failed to add helper role');
+    } finally {
+      setConfirmHelperOpen(false);
+    }
+  };
+
+  const handleBecomeHelperClick = () => {
+    if (!isAuthenticated) {
+      onNavigate('auth');
+      return;
+    }
+    if (isHelper()) {
+      toast.info('You are already a helper');
+      return;
+    }
+    setConfirmHelperOpen(true);
+  };
 
   useEffect(() => {
     loadFeaturedTasks();
@@ -78,6 +146,20 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
   return (
     <div className="min-h-screen">
       {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
+      <AlertDialog open={confirmHelperOpen} onOpenChange={setConfirmHelperOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Become a Helper?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will add the helper role to your account so you can browse and apply to tasks. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAddHelper}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {/* Hero Section */}
       <div className="relative bg-secondary/30 min-h-screen flex items-center px-4 overflow-hidden">
@@ -325,7 +407,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
       {/* Footer Section */}
       <div className="bg-[#C7BBA9]/30 py-16 px-4">
         <div className="max-w-[1200px] mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8 items-start">
             <div className="space-y-4">
               <h3 className="text-primary" style={{ fontWeight: 700 }}>PawfectMatch</h3>
               <p className="text-sm text-muted-foreground">
@@ -338,7 +420,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><button onClick={() => onNavigate('post-task')} className="hover:text-primary transition-colors">Post a Task</button></li>
                 <li><button onClick={() => onNavigate('tasks')} className="hover:text-primary transition-colors">Find Helpers</button></li>
-                <li><button className="hover:text-primary transition-colors">How It Works</button></li>
+                <li><button onClick={scrollToHowItWorks} className="hover:text-primary transition-colors">How It Works</button></li>
               </ul>
             </div>
             
@@ -346,19 +428,14 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               <h4 style={{ fontWeight: 600 }}>For Helpers</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><button onClick={() => onNavigate('tasks')} className="hover:text-primary transition-colors">Browse Tasks</button></li>
-                <li><button className="hover:text-primary transition-colors">Become a Helper</button></li>
-                <li><button className="hover:text-primary transition-colors">Safety Guidelines</button></li>
+                <li>
+                  <button className="hover:text-primary transition-colors" onClick={handleBecomeHelperClick}>
+                    Become a Helper
+                  </button>
+                </li>
               </ul>
             </div>
             
-            <div className="space-y-3">
-              <h4 style={{ fontWeight: 600 }}>Community</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><button className="hover:text-primary transition-colors">About Us</button></li>
-                <li><button className="hover:text-primary transition-colors">Support</button></li>
-                <li><button className="hover:text-primary transition-colors">Contact</button></li>
-              </ul>
-            </div>
           </div>
           
           <div className="border-t border-border pt-8 mt-8">

@@ -24,7 +24,7 @@ export function HowItWorks() {
   ];
 
   return (
-    <div className="min-h-screen py-20 px-4 relative flex items-center">
+    <div id="how-it-works" className="min-h-screen py-20 px-4 relative flex items-center">
       {/* Background image with overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -33,9 +33,9 @@ export function HowItWorks() {
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
+          opacity: 0.85,
         }}
       />
-      {/* <div className="absolute inset-0 bg-white bg-opacity-40"></div> */}
       
       {/* Content */}
       <div className="max-w-[1200px] mx-auto relative z-10 w-full">

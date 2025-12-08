@@ -399,10 +399,10 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
                     </div>
                     <div>
                       <div className="text-primary" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {useHelperRole ? primaryCompletedCount : primaryCompletedCount}
+                        {useHelperRole ? primaryCompletedCount : postedTasks.length}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {useHelperRole ? "Tasks Done" : "Tasks Completed"}
+                        {useHelperRole ? "Tasks Done" : "Tasks Posted"}
                       </div>
                     </div>
                   </div>

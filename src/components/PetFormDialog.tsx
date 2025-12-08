@@ -10,6 +10,15 @@ import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 
+// 默认宠物头像映射
+const DEFAULT_PET_IMAGES: Record<string, string> = {
+  dog: "https://placehold.co/600x600/FFB84D/FFFFFF?text=Dog",
+  cat: "https://placehold.co/600x600/FFB6C1/FFFFFF?text=Cat",
+  bird: "https://placehold.co/600x600/87CEEB/FFFFFF?text=Bird",
+  rabbit: "https://placehold.co/600x600/DDA0DD/FFFFFF?text=Rabbit",
+  other: "https://placehold.co/600x600/98FB98/FFFFFF?text=Pet",
+};
+
 // Backend Pet interface
 interface BackendPet {
   _id?: string;
@@ -59,7 +68,7 @@ export function PetFormDialog({ open, onOpenChange, pet, onSave }: PetFormDialog
           image: pet.photos?.[0] || "",
         });
       } else {
-        // Creating new pet - reset form
+        // Creating new pet - reset form with default dog image
         setFormData({
           name: "",
           type: "dog",
@@ -67,11 +76,23 @@ export function PetFormDialog({ open, onOpenChange, pet, onSave }: PetFormDialog
           height: "",
           weight: "",
           temperament: "",
-          image: "",
+          image: DEFAULT_PET_IMAGES.dog,
         });
       }
     }
   }, [open, pet]);
+
+  // 当宠物类型改变时更新默认图像
+  const handleTypeChange = (value: string) => {
+    // 只有当用户没有上传自定义图片时才更新默认图片
+    setFormData(prev => ({
+      ...prev,
+      type: value,
+      image: prev.image === DEFAULT_PET_IMAGES[prev.type] || prev.image === "" 
+        ? DEFAULT_PET_IMAGES[value] 
+        : prev.image
+    }));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -291,7 +312,7 @@ export function PetFormDialog({ open, onOpenChange, pet, onSave }: PetFormDialog
               <Label htmlFor="type">Type *</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                onValueChange={handleTypeChange}
                 disabled={loading}
               >
                 <SelectTrigger id="type">

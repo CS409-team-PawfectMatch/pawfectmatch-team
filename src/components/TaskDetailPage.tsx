@@ -467,6 +467,21 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
   const isTaskHelper = task && user && (task.assignedTo?._id?.toString?.() || task.assignedTo?._id || task.assignedTo)?.toString() === user._id;
   const isTaskApplicant = task && user && task.applicants?.some(app => (app?._id?.toString?.() || app?._id || app)?.toString() === user._id);
   const hasApplied = task?.applicants?.some(app => app._id === user?._id);
+  const assignedHelperId = task && (typeof task.assignedTo === 'string' ? task.assignedTo : task.assignedTo?._id);
+  const assignedHelperObj = task && typeof task.assignedTo === 'object' && task.assignedTo !== null ? (task.assignedTo as any) : null;
+  const assignedHelper = assignedHelperObj && assignedHelperObj.name ? assignedHelperObj : null;
+  // Helper is inactive when we have no populated helper data (deleted/missing).
+  // We need actual helper info (object with name); a bare ID string is treated as missing.
+  const isAssignedHelperInactive = !assignedHelperObj || !assignedHelperObj.name;
+
+  const ownerId = task && (typeof task.postedBy === 'string' ? task.postedBy : task.postedBy?._id);
+  const ownerObj = task && typeof task.postedBy === 'object' && task.postedBy !== null ? (task.postedBy as any) : null;
+  const ownerData = ownerObj && ownerObj.name ? ownerObj : null;
+  // Only treat as inactive if the owner record is missing (deleted) or missing a name
+  const isOwnerInactive = Boolean(ownerId && (!ownerObj || !ownerObj.name));
+
+  const helperMessageDisabled = isAssignedHelperInactive;
+  const reviewButtonDisabled = isAssignedHelperInactive;
 
   const handleSubmitReview = async (rating: number, comment: string, revieweeId: string, taskId: string) => {
     try {
@@ -917,7 +932,7 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                 </Card>
 
                 {/* Owner Info - Takes 1 column */}
-                {task.postedBy && (
+                {ownerId && (
                   <Card className="p-6 border-0 shadow-md h-full flex flex-col">
                     <div className="flex items-center gap-2 mb-4">
                       <Heart className="w-5 h-5 text-primary fill-primary" />
@@ -925,60 +940,69 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                     </div>
                     <div className="flex items-center gap-4 mb-4">
                       <Avatar 
-                        className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id, viewRole: 'owner' })}
+                        className={`w-16 h-16 ${isOwnerInactive ? '' : 'cursor-pointer hover:opacity-80 transition-opacity'}`}
+                        onClick={() => !isOwnerInactive && onNavigate('helper-public-profile', { userId: ownerId, viewRole: 'owner' })}
                       >
-                        <AvatarImage src={task.postedBy.profilePhoto} alt={task.postedBy.name} />
+                        {!isOwnerInactive && ownerData ? (
+                          <AvatarImage src={ownerData.profilePhoto} alt={ownerData.name} />
+                        ) : null}
                         <AvatarFallback className="bg-primary text-white">
-                          {task.postedBy.name.substring(0, 2).toUpperCase()}
+                          {isOwnerInactive
+                            ? '—'
+                            : (ownerData?.name || '').substring(0, 2).toUpperCase() || '??'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 
                             style={{ fontWeight: 600 }}
-                            className="cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => onNavigate('helper-public-profile', { userId: task.postedBy?._id, viewRole: 'owner' })}
+                            className={`${isOwnerInactive ? '' : 'cursor-pointer hover:text-primary transition-colors'}`}
+                            onClick={() => !isOwnerInactive && onNavigate('helper-public-profile', { userId: ownerId, viewRole: 'owner' })}
                           >
-                            {task.postedBy.name}
+                            {isOwnerInactive ? 'Owner account deleted.' : ownerData?.name}
                           </h4>
-                          <Shield className="w-4 h-4 text-primary" />
+                          {!isOwnerInactive && <Shield className="w-4 h-4 text-primary" />}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                          <span className="text-sm" style={{ fontWeight: 600 }}>
-                            {formatRating(task.postedBy?.ownerRating)}
-                          </span>
-                        </div>
+                        {!isOwnerInactive && (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <span className="text-sm" style={{ fontWeight: 600 }}>
+                              {formatRating(ownerData?.ownerRating)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Owner stats */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-primary/5 rounded-lg px-3 py-2">
-                        <div className="text-primary" style={{ fontWeight: 700 }}>
-                          {allTasksForCalculation.filter(
-                            (t: any) => (t.postedBy?._id || t.postedBy)?.toString() === (task.postedBy?._id || '').toString()
-                          ).length}
+                    {!isOwnerInactive && (
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-primary/5 rounded-lg px-3 py-2">
+                          <div className="text-primary" style={{ fontWeight: 700 }}>
+                            {allTasksForCalculation.filter(
+                              (t: any) => (t.postedBy?._id || t.postedBy)?.toString() === (ownerId || '').toString()
+                            ).length}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Tasks Posted</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Tasks Posted</div>
-                      </div>
-                      <div className="bg-accent/5 rounded-lg px-3 py-2">
-                        <div className="text-accent" style={{ fontWeight: 700 }}>
-                          {allTasksForCalculation.filter(
-                            (t: any) =>
-                              (t.postedBy?._id || t.postedBy)?.toString() === (task.postedBy?._id || '').toString() &&
-                              t.status === 'completed'
-                          ).length}
+                        <div className="bg-accent/5 rounded-lg px-3 py-2">
+                          <div className="text-accent" style={{ fontWeight: 700 }}>
+                            {allTasksForCalculation.filter(
+                              (t: any) =>
+                                (t.postedBy?._id || t.postedBy)?.toString() === (ownerId || '').toString() &&
+                                t.status === 'completed'
+                            ).length}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Tasks Completed</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Tasks Completed</div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="flex gap-2 mt-auto">
                       <Button 
-                        className="flex-1 bg-primary hover:bg-primary/90 text-white"
-                        onClick={() => onNavigate('messages', { selectedUserId: task.postedBy?._id })}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isOwnerInactive}
+                        onClick={() => !isOwnerInactive && onNavigate('messages', { selectedUserId: ownerId })}
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
                         Message
@@ -1059,7 +1083,7 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                 )}
 
                 {/* Helper Info - Takes 1 column */}
-                {task.assignedTo && (
+                {assignedHelperId && (
                   <Card className="p-6 border-0 shadow-md h-full flex flex-col">
                     <div className="flex items-center gap-2 mb-4">
                       <Briefcase className="w-5 h-5 text-primary fill-primary" />
@@ -1067,63 +1091,72 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                     </div>
                     <div className="flex items-center gap-4 mb-4">
                       <Avatar 
-                        className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => onNavigate('helper-public-profile', { userId: task.assignedTo?._id, viewRole: 'helper' })}
+                        className={`w-16 h-16 ${isAssignedHelperInactive ? '' : 'cursor-pointer hover:opacity-80 transition-opacity'}`}
+                        onClick={() => !isAssignedHelperInactive && onNavigate('helper-public-profile', { userId: assignedHelperId, viewRole: 'helper' })}
                       >
-                        <AvatarImage src={task.assignedTo.profilePhoto} alt={task.assignedTo.name} />
+                        {!isAssignedHelperInactive && assignedHelper ? (
+                          <AvatarImage src={assignedHelper.profilePhoto} alt={assignedHelper.name} />
+                        ) : null}
                         <AvatarFallback className="bg-accent text-white">
-                          {task.assignedTo.name.substring(0, 2).toUpperCase()}
+                          {isAssignedHelperInactive
+                            ? '—'
+                            : (assignedHelper?.name || '').substring(0, 2).toUpperCase() || '??'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 
                             style={{ fontWeight: 600 }}
-                            className="cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => onNavigate('helper-public-profile', { userId: task.assignedTo?._id, viewRole: 'helper' })}
+                            className={`${isAssignedHelperInactive ? '' : 'cursor-pointer hover:text-primary transition-colors'}`}
+                            onClick={() => !isAssignedHelperInactive && onNavigate('helper-public-profile', { userId: assignedHelperId, viewRole: 'helper' })}
                           >
-                            {task.assignedTo.name}
+                            {isAssignedHelperInactive ? 'Helper account deleted.' : assignedHelper?.name}
                           </h4>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                          <span className="text-sm" style={{ fontWeight: 600 }}>
-                            {formatRating(task.assignedTo?.helperRating)}
-                          </span>
-                        </div>
+                        {!isAssignedHelperInactive && (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <span className="text-sm" style={{ fontWeight: 600 }}>
+                              {formatRating(assignedHelper?.helperRating)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Helper stats */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-accent/5 rounded-lg px-3 py-2">
-                        <div className="text-accent" style={{ fontWeight: 700 }}>
-                          {allTasksForCalculation.filter(
-                            (t: any) => {
-                              const assignedToId = t.assignedTo?._id?.toString() || t.assignedTo?._id || t.assignedTo;
-                              return assignedToId === (task.assignedTo?._id || '').toString() && t.status === 'completed';
-                            }
-                          ).length}
+                    {!isAssignedHelperInactive && (
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-accent/5 rounded-lg px-3 py-2">
+                          <div className="text-accent" style={{ fontWeight: 700 }}>
+                            {allTasksForCalculation.filter(
+                              (t: any) => {
+                                const assignedToId = t.assignedTo?._id?.toString() || t.assignedTo?._id || t.assignedTo;
+                                return assignedToId === (assignedHelperId || '').toString() && t.status === 'completed';
+                              }
+                            ).length}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Tasks Done</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Tasks Done</div>
-                      </div>
-                      <div className="bg-primary/5 rounded-lg px-3 py-2">
-                        <div className="text-primary" style={{ fontWeight: 700 }}>
-                          {allTasksForCalculation.filter(
-                            (t: any) => {
-                              const assignedToId = t.assignedTo?._id?.toString() || t.assignedTo?._id || t.assignedTo;
-                              return assignedToId === (task.assignedTo?._id || '').toString();
-                            }
-                          ).length}
+                        <div className="bg-primary/5 rounded-lg px-3 py-2">
+                          <div className="text-primary" style={{ fontWeight: 700 }}>
+                            {allTasksForCalculation.filter(
+                              (t: any) => {
+                                const assignedToId = t.assignedTo?._id?.toString() || t.assignedTo?._id || t.assignedTo;
+                                return assignedToId === (assignedHelperId || '').toString();
+                              }
+                            ).length}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Total Tasks</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Total Tasks</div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="flex gap-2 mt-auto">
                       <Button 
-                        className="flex-1 bg-primary hover:bg-primary/90 text-white"
-                        onClick={() => onNavigate('messages', { selectedUserId: task.assignedTo?._id })}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={helperMessageDisabled}
+                        onClick={() => !helperMessageDisabled && onNavigate('messages', { selectedUserId: assignedHelperId })}
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
                         Message
@@ -1279,8 +1312,9 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                           {!hasSubmittedReview && (
                             <Button 
                               size="lg"
-                              className="w-full !bg-primary hover:!bg-primary/90 !text-white rounded-full"
-                              onClick={() => setReviewDialogOpen(true)}
+                              className="w-full !bg-primary hover:!bg-primary/90 !text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={reviewButtonDisabled}
+                              onClick={() => !reviewButtonDisabled && setReviewDialogOpen(true)}
                             >
                               Click to Review
                             </Button>

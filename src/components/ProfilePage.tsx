@@ -588,7 +588,31 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     setPetFormOpen(true);
   };
 
-  const handleRemoveRole = (role: 'owner' | 'helper') => {
+  const handleRemoveRole = async (role: 'owner' | 'helper') => {
+    // Ensure latest tasks before validating
+    if (!loadingTasks && postedTasks.length === 0 && assignedTasks.length === 0) {
+      await loadTasks();
+    }
+
+    if (role === 'owner') {
+      const activeOwnerTasks = (postedTasks || []).filter(t =>
+        ['open', 'pending', 'in_progress', 'pending_confirmation'].includes((t.status || '').toLowerCase())
+      );
+      if (activeOwnerTasks.length > 0) {
+        toast.error('You have unfinished posted tasks. Complete or cancel them before removing the owner role.');
+        return;
+      }
+    }
+
+    if (role === 'helper') {
+      const activeHelperTasks = (assignedTasks || []).filter(t =>
+        ['pending', 'in_progress', 'pending_confirmation'].includes((t.status || '').toLowerCase())
+      );
+      if (activeHelperTasks.length > 0) {
+        toast.error('You have tasks in progress. Complete or cancel them before removing the helper role.');
+        return;
+      }
+    }
     setRoleToRemove(role);
     setConfirmRemoveRoleOpen(true);
   };

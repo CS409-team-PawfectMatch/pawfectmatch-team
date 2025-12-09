@@ -68,8 +68,8 @@ export const createTask = async (req, res) => {
     // Populate and return
     const populatedTask = await Task.findById(task._id)
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio expectedHourlyRate');
 
     res.status(201).json({
@@ -97,8 +97,8 @@ export const getAllTasks = async (req, res) => {
   try {
     const tasks = await Task.find()
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto')
       .sort({ createdAt: -1 });
 
@@ -121,8 +121,8 @@ export const getTaskById = async (req, res) => {
 
     const task = await Task.findById(id)
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio expectedHourlyRate');
 
     if (!task) {
@@ -213,8 +213,8 @@ export const applyToTask = async (req, res) => {
     // Populate and return updated task
     const updatedTask = await Task.findById(id)
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio expectedHourlyRate');
 
     res.json({
@@ -279,8 +279,8 @@ export const assignHelper = async (req, res) => {
     // Populate and return updated task
     const updatedTask = await Task.findById(id)
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio expectedHourlyRate');
 
     res.json({
@@ -334,7 +334,7 @@ export const completeTask = async (req, res) => {
     const updatedTask = await Task.findById(id)
       .populate('pet', 'name type breed age gender height weight notes photos')
       .populate('postedBy', 'name profilePhoto rating')
-      .populate('assignedTo', 'name profilePhoto rating')
+      .populate('assignedTo', 'name profilePhoto rating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio expectedHourlyRate');
 
     res.json({
@@ -387,8 +387,8 @@ export const confirmTask = async (req, res) => {
     // Populate and return updated task
     const updatedTask = await Task.findById(id)
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio expectedHourlyRate');
 
     res.json({
@@ -480,8 +480,8 @@ export const cancelTask = async (req, res) => {
 
       const updatedTask = await Task.findById(id)
         .populate('pet', 'name type breed age gender height weight notes photos')
-        .populate('postedBy', 'name profilePhoto ownerRating')
-        .populate('assignedTo', 'name profilePhoto helperRating')
+        .populate('postedBy', 'name profilePhoto ownerRating roles')
+        .populate('assignedTo', 'name profilePhoto helperRating roles')
         .populate('applicants', 'name profilePhoto helperRating location specialties bio');
 
       return res.json({
@@ -505,8 +505,8 @@ export const cancelTask = async (req, res) => {
 
     const updatedTask = await Task.findById(id)
       .populate('pet', 'name type breed age gender height weight notes photos')
-      .populate('postedBy', 'name profilePhoto ownerRating')
-      .populate('assignedTo', 'name profilePhoto helperRating')
+      .populate('postedBy', 'name profilePhoto ownerRating roles')
+      .populate('assignedTo', 'name profilePhoto helperRating roles')
       .populate('applicants', 'name profilePhoto helperRating location specialties bio');
 
     res.json({

@@ -49,7 +49,6 @@ interface Conversation {
   lastMessage: string;
   time: string;
   hasUnread: boolean;
-  online: boolean;
   messages: Message[];
   participantId: string;
   timestamp: string;
@@ -117,7 +116,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                 lastMessage: conv.lastMessage,
                 time: new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 hasUnread: conv.hasUnread,
-                online: false,
                 messages: [],
                 participantId: conv.participantId,
                 timestamp: conv.timestamp
@@ -133,7 +131,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
               lastMessage: conv.lastMessage,
               time: new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               hasUnread: conv.hasUnread,
-              online: false,
               messages: [],
               participantId: conv.participantId,
               timestamp: conv.timestamp
@@ -177,7 +174,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                 lastMessage: "",
                 time: "Just now",
                 hasUnread: false,
-                online: true,
                 messages: [],
                 participantId: selectedUserId,
                 timestamp: new Date().toISOString()
@@ -301,7 +297,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                 minute: '2-digit' 
               }),
               hasUnread: true,
-              online: false,
               messages: [],
               participantId: message.sender._id,
               timestamp: message.timestamp
@@ -804,9 +799,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                               {conv.initials}
                             </AvatarFallback>
                           </Avatar>
-                          {conv.online && (
-                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-primary rounded-full border-2 border-white shadow-sm" />
-                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
@@ -897,9 +889,6 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                           >
                             {selectedConversation.name}
                           </h4>
-                          {selectedConversation.online && (
-                            <div className="w-2 h-2 bg-green-500 rounded-full" />
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1038,7 +1027,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 ml-20">
-                      Press Enter to send • Share photos of your pets! 🐾
+                      Press Enter to send 🐾
                     </p>
                   </div>
                 </>

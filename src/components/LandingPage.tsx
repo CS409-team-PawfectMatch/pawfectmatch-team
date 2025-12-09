@@ -446,8 +446,8 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
               <p>© 2025 PawfectMatch. All rights reserved.</p>
               <div className="flex gap-6">
-                <button className="hover:text-primary transition-colors">Privacy Policy</button>
-                <button className="hover:text-primary transition-colors">Terms of Service</button>
+                {/* <button className="hover:text-primary transition-colors">Privacy Policy</button>
+                <button className="hover:text-primary transition-colors">Terms of Service</button> */}
               </div>
             </div>
           </div>

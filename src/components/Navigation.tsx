@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import logo from "../assets/logo.png";
@@ -64,57 +64,27 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
           >
             Home
           </button>
-         
           
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 text-foreground hover:text-primary transition-colors" style={{ fontSize: '16px', fontWeight: 500 }}>
-              For Owners
-              <ChevronDown className="w-4 h-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => {
-                if (!isAuthenticated) {
-                  toast.error("Please log in to continue");
-                  onNavigate("auth");
-                  return;
-                }
-                onNavigate('post-task');
-              }}>
-                Post a Task
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onNavigate('find-helpers')}>
-                Find Helpers
-              </DropdownMenuItem>
-              {isAuthenticated && isOwner() && (
-                <DropdownMenuItem onClick={() => {
-                  onNavigate('owner-profile');
-                }}>
-                  My Owner Profile
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {(!isAuthenticated || isOwner()) && (
+            <button 
+              onClick={() => onNavigate('find-helpers')}
+              className={`transition-colors ${currentPage === 'find-helpers' ? 'text-primary' : 'text-foreground hover:text-primary'}`}
+              style={{ fontSize: '16px', fontWeight: 500 }}
+            >
+              Find Helpers
+            </button>
+          )}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 text-foreground hover:text-primary transition-colors" style={{ fontSize: '16px', fontWeight: 500 }}>
-              For Helpers
-              <ChevronDown className="w-4 h-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => onNavigate('tasks')}>
-                Browse Tasks
-              </DropdownMenuItem>
-              {isAuthenticated && isHelper() && (
-                <DropdownMenuItem onClick={() => {
-                  onNavigate('helper-profile');
-                }}>
-                  My Helper Profile
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!isAuthenticated && (
+            <button 
+              onClick={() => onNavigate('tasks')}
+              className={`transition-colors ${currentPage === 'tasks' ? 'text-primary' : 'text-foreground hover:text-primary'}`}
+              style={{ fontSize: '16px', fontWeight: 500 }}
+            >
+              Browse Tasks
+            </button>
+          )}
 
- 
           <button 
             onClick={() => {
               if (!isAuthenticated) {
@@ -133,14 +103,6 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button 
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowOnboarding(true)}
-            className="hover:bg-primary/10 hover:text-primary"
-          >
-            <HelpCircle className="w-5 h-5" />
-          </Button>
           {isAuthenticated ? (
             <>
               {isOwner() && !isHelper() && (
@@ -241,6 +203,14 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button 
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowOnboarding(true)}
+                className="hover:bg-primary/10 hover:text-primary"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Button>
             </>
           ) : (
             <>
@@ -262,6 +232,14 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
                 className="bg-primary hover:bg-primary/90 text-white"
               >
                 Post a Task
+              </Button>
+              <Button 
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowOnboarding(true)}
+                className="hover:bg-primary/10 hover:text-primary"
+              >
+                <HelpCircle className="w-5 h-5" />
               </Button>
             </>
           )}

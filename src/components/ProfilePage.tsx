@@ -34,8 +34,9 @@ const DEFAULT_PET_IMAGES: Record<string, string> = {
 };
 
 // 获取宠物默认图片的函数
-const getDefaultPetImage = (petType: string) => {
-  return DEFAULT_PET_IMAGES[petType?.toLowerCase()] || DEFAULT_PET_IMAGES.other;
+const getDefaultPetImage = (petType?: string) => {
+  if (!petType) return DEFAULT_PET_IMAGES.other;
+  return DEFAULT_PET_IMAGES[petType.toLowerCase()] || DEFAULT_PET_IMAGES.other;
 };
 
 interface ProfilePageProps {
@@ -1227,7 +1228,7 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                     return null;
                   }
                   
-                  const petImage = task?.pet?.photos?.[0] ?? "https://placehold.co/600x400?text=No+Pet+Photo";
+                  const petImage = task?.pet?.photos?.[0] ?? getDefaultPetImage(task?.pet?.type);
                   const applicantsCount = task.applicants?.length || 0;
                   const taskStatus = task.status?.trim() || '';
                   

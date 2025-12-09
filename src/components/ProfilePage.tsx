@@ -20,7 +20,6 @@ import { api } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { Users } from "lucide-react";
 import { User as UserIcon } from "lucide-react";
-<<<<<<< HEAD
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,12 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-=======
+
+
 import defaultDog from "../assets/default-dog.jpg";
 import defaultCat from "../assets/default-cat.jpg";
 import defaultBird from "../assets/default-bird.jpg";
 import defaultRabbit from "../assets/default-rabbit.jpg";
->>>>>>> main
+
 
 const DEFAULT_PET_IMAGES: Record<string, string> = {
   dog: defaultDog,
@@ -152,7 +152,7 @@ interface BackendPet {
 }
 
 export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initialActiveTab }: ProfilePageProps) {
-  const { user, loading: userLoading, setUser, logout } = useUser();
+  const { user, loading: userLoading, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [avatarKey, setAvatarKey] = useState(0);
   const [loadingPets, setLoadingPets] = useState(false);

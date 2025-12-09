@@ -62,6 +62,12 @@ interface Task {
     _id: string;
     name: string;
   };
+  postedBy?: {
+    _id: string;
+    name: string;
+    profilePhoto?: string;
+    ownerRating?: number;
+  };
 }
 
 export function LandingPage({ onNavigate }: LandingPageProps) {
@@ -145,6 +151,14 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
     } finally {
       setLoadingTasks(false);
     }
+  };
+
+  // Format rating for display
+  const formatRating = (rating?: number): string => {
+    if (rating === undefined || rating === null || rating === 0) {
+      return 'No rating';
+    }
+    return rating.toFixed(1);
   };
 
   return (
@@ -285,7 +299,9 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1 shadow-md">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm" style={{ fontWeight: 600 }}>4.8</span>
+                        <span className="text-sm" style={{ fontWeight: 600 }}>
+                          {formatRating(task.postedBy?.ownerRating)}
+                        </span>
                       </div>
                     </div>
                     <div className="p-5 space-y-3 bg-white">

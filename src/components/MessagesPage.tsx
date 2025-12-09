@@ -221,7 +221,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
         serverUrl = 'ws://localhost:3001';
       }
       
-      console.log("Connecting to WebSocket server:", serverUrl);
+      // console.log("Connecting to WebSocket server:", serverUrl);
       
       socketRef.current = io(serverUrl, {
         transports: ["websocket", "polling"],
@@ -232,12 +232,12 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
       
       // Log connection events
       socketRef.current.on("connect", () => {
-        console.log("WebSocket connected with ID:", socketRef.current?.id);
+        // console.log("WebSocket connected with ID:", socketRef.current?.id);
         // Join room after connection is established
         setTimeout(() => {
           if (user._id && socketRef.current?.connected) {
             socketRef.current?.emit("join_room", user._id);
-            console.log("Joined room with user ID:", user._id);
+            // console.log("Joined room with user ID:", user._id);
           }
         }, 100);
       });
@@ -257,10 +257,10 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
       
       // Listen for receive message
       socketRef.current.on("receive_message", (message: Message) => {
-        console.log("Received message via WebSocket:", message);
+        // console.log("Received message via WebSocket:", message);
         // Ensure message is not from user self
         if (message.sender._id === user._id) {
-          console.log("Ignoring message from self");
+          // console.log("Ignoring message from self");
           return;
         }
         
@@ -322,12 +322,12 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
           const conversation = currentConversations.find(c => c._id === selectedChat);
           
           if (conversation && conversation.participantId === message.sender._id) {
-            console.log("Adding received message to current conversation");
+            // console.log("Adding received message to current conversation");
             setSelectedConversation(prev => {
               if (prev) {
-                console.log("Previous message count:", prev.messages.length);
+                // console.log("Previous message count:", prev.messages.length);
                 const updatedMessages = [...prev.messages, message];
-                console.log("Updated message count:", updatedMessages.length);
+                // console.log("Updated message count:", updatedMessages.length);
                 return {
                   ...prev,
                   messages: updatedMessages
@@ -355,7 +355,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
       
       // Listen for message sent confirmation
       socketRef.current.on("message_sent", (message: Message) => {
-        console.log("Message sent confirmation received:", message);
+        // console.log("Message sent confirmation received:", message);
         
         // Update the conversation in the list
         setConversations(prev => {
@@ -383,15 +383,24 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
         });
         
         // If currently viewing this conversation, add message to chat
+        // Fixed: Use selectedChat instead of selectedConversation for comparison
         if (selectedChat && selectedConversation) {
           // Check if the sent message belongs to the currently viewed conversation
           if (selectedConversation.participantId === message.recipient._id) {
+            // console.log("Adding sent message confirmation to current conversation");
             setSelectedConversation(prev => {
               if (prev) {
-                return {
-                  ...prev,
-                  messages: [...prev.messages, message]
-                };
+                // console.log("Previous message count (confirmation):", prev.messages.length);
+                // Check if this message is already in the list (to avoid duplicates)
+                const messageExists = prev.messages.some(msg => msg._id === message._id);
+                if (!messageExists) {
+                  const updatedMessages = [...prev.messages, message];
+                  // console.log("Updated message count (confirmation):", updatedMessages.length);
+                  return {
+                    ...prev,
+                    messages: updatedMessages
+                  };
+                }
               }
               return prev;
             });
@@ -491,7 +500,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
     // Re-join room to ensure we receive messages for this conversation
     if (socketRef.current?.connected) {
       socketRef.current.emit("join_room", user._id);
-      console.log("Re-joined room with user ID:", user._id);
+      // console.log("Re-joined room with user ID:", user._id);
     }
   }, [selectedChat, user?._id]);
 
@@ -515,13 +524,13 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
       if (!conversation || !isMounted) return;
       
       try {
-        console.log("Loading messages for conversation:", conversation.participantId);
+        // console.log("Loading messages for conversation:", conversation.participantId);
         // Fetch real message history from API
         const response = await api.getConversation(conversation.participantId);
         if (response.success && response.data && isMounted) {
           // Only update state if the currently selected chat is still this conversation
           if (selectedChat === conversation._id) {
-            console.log("Setting conversation messages:", response.data.length);
+            // console.log("Setting conversation messages:", response.data.length);
             setSelectedConversation({
               ...conversation,
               messages: response.data
@@ -583,7 +592,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
 
   const handleSendMessage = async () => {
     if (message.trim() && user && selectedConversation) {
-      console.log("Sending message:", message.trim());
+      // console.log("Sending message:", message.trim());
       try {
         // Prepare message data
         const messageData = {
@@ -602,7 +611,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
         
         // Send message through WebSocket if connected, otherwise use API
         if (socketRef.current && socketRef.current.connected) {
-          console.log("Sending via WebSocket to:", selectedConversation.participantId);
+          // console.log("Sending via WebSocket to:", selectedConversation.participantId);
           // Emit message through WebSocket
           socketRef.current.emit('send_message', messageData);
           
@@ -625,7 +634,7 @@ export function MessagesPage({ onNavigate, selectedUserId }: MessagesPageProps) 
           // Update conversation messages
           setSelectedConversation(prev => {
             if (prev) {
-              console.log("Updating conversation messages, current count:", prev.messages.length);
+              // console.log("Updating conversation messages, current count:", prev.messages.length);
               return {
                 ...prev,
                 messages: [...prev.messages, newMessage],

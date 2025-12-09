@@ -173,13 +173,14 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
     
     setLoadingReviews(true);
     try {
-      // For helper profile page, always load reviews where user was the helper
-      console.log(`HelperPublicProfilePage - Loading reviews for helper userId=${userId}`);
-      const response = await api.get<Review[]>(`/users/${userId}/reviews?role=helper`);
-      console.log(`HelperPublicProfilePage - helper reviews API response:`, response);
+      // Determine which role's reviews to load based on viewRole
+      const role = viewRole === 'owner' ? 'owner' : 'helper';
+      console.log(`HelperPublicProfilePage - Loading reviews for ${role} userId=${userId}`);
+      const response = await api.get<Review[]>(`/users/${userId}/reviews?role=${role}`);
+      console.log(`HelperPublicProfilePage - ${role} reviews API response:`, response);
       if (response.success && response.data) {
         const data = Array.isArray(response.data) ? response.data : [];
-        console.log(`HelperPublicProfilePage - Reviews for helper:`, {
+        console.log(`HelperPublicProfilePage - Reviews for ${role}:`, {
           reviewsCount: data.length,
           reviews: data
         });
@@ -358,10 +359,10 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
                     </div>
                     <div>
                       <div className="text-accent" style={{ fontWeight: 700, fontSize: '24px' }}>
-                        {useHelperRole ? reviews.length : primaryCompletedCount}
+                        {reviews.length}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {useHelperRole ? "Reviews" : "Tasks Completed"}
+                        Reviews
                       </div>
                     </div>
                   </div>
@@ -387,7 +388,7 @@ export function HelperPublicProfilePage({ onNavigate, userId, helperId, viewRole
         </Card>
 
         {/* Professional Details Section */}
-        {useHelperRole && (
+        {useHelperRole && helperUser.roles?.includes('helper') && (
           <Card className="p-6 mb-6 border-0 shadow-lg">
             <h2 className="mb-4" style={{ fontWeight: 600, fontSize: '20px' }}>Professional Details</h2>
 

@@ -20,10 +20,23 @@ import { api } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { Users } from "lucide-react";
 import { User as UserIcon } from "lucide-react";
+<<<<<<< HEAD
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+=======
 import defaultDog from "../assets/default-dog.jpg";
 import defaultCat from "../assets/default-cat.jpg";
 import defaultBird from "../assets/default-bird.jpg";
 import defaultRabbit from "../assets/default-rabbit.jpg";
+>>>>>>> main
 
 const DEFAULT_PET_IMAGES: Record<string, string> = {
   dog: defaultDog,
@@ -139,7 +152,7 @@ interface BackendPet {
 }
 
 export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initialActiveTab }: ProfilePageProps) {
-  const { user, loading: userLoading, setUser } = useUser();
+  const { user, loading: userLoading, setUser, logout } = useUser();
   const [loading, setLoading] = useState(true);
   const [avatarKey, setAvatarKey] = useState(0);
   const [loadingPets, setLoadingPets] = useState(false);
@@ -147,6 +160,9 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<'pets' | 'tasks' | 'reviews'>(initialActiveTab || 'tasks');
   const [addingRole, setAddingRole] = useState(false); // 新增状态用于跟踪角色添加过程
+  const [removingRole, setRemovingRole] = useState(false);
+  const [confirmRemoveRoleOpen, setConfirmRemoveRoleOpen] = useState(false);
+  const [roleToRemove, setRoleToRemove] = useState<'owner' | 'helper' | null>(null);
   const hasRefreshedUser = useRef(false);
   const lastActiveTab = useRef<string | null>(null);
 
@@ -572,6 +588,43 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
     setPetFormOpen(true);
   };
 
+  const handleRemoveRole = (role: 'owner' | 'helper') => {
+    setRoleToRemove(role);
+    setConfirmRemoveRoleOpen(true);
+  };
+
+  const confirmRemoveRole = async () => {
+    if (!user || !roleToRemove) return;
+    setRemovingRole(true);
+    try {
+      const response = await api.post('/users/remove-role', { role: roleToRemove });
+      if (response.success) {
+        // Prevent role-based guard toast on the redirect immediately after removal
+        sessionStorage.setItem('suppressRoleToast', 'true');
+
+        if (response.data?.deleted) {
+          toast.success('Account deleted. Please sign up again to use PawfectMatch.');
+          logout();
+          onNavigate('landing');
+          return;
+        }
+        if (response.data) {
+          setUser(response.data);
+          toast.success(`Removed ${roleToRemove} role`);
+          onNavigate('landing');
+        }
+      } else {
+        toast.error(response.message || `Failed to remove ${roleToRemove} role`);
+      }
+    } catch (error) {
+      toast.error(`Failed to remove ${roleToRemove} role`);
+    } finally {
+      setRemovingRole(false);
+      setConfirmRemoveRoleOpen(false);
+      setRoleToRemove(null);
+    }
+  };
+
   const handleDeletePet = async (petId: string) => {
     if (!petId) return;
     try {
@@ -936,12 +989,37 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
                           Become Owner
                         </Button>
                       )}
+                      {userType === 'owner' && user.roles.includes('owner') && (
+                        <Button
+                          variant="outline"
+                          className="gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => handleRemoveRole('owner')}
+                          disabled={removingRole}
+                        >
+                          Remove Owner
+                        </Button>
+                      )}
+                      {userType === 'helper' && user.roles.includes('helper') && (
+                        <Button
+                          variant="outline"
+                          className="gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => handleRemoveRole('helper')}
+                          disabled={removingRole}
+                        >
+                          Remove Helper
+                        </Button>
+                      )}
                     </>
                   )}
 
                   {addingRole && (
                     <Button variant="outline" disabled>
                       Adding Role...
+                    </Button>
+                  )}
+                  {removingRole && (
+                    <Button variant="outline" disabled>
+                      Removing Role...
                     </Button>
                   )}
                 </div>
@@ -1465,6 +1543,32 @@ export function ProfilePage({ onNavigate, userType = 'owner', activeTab: initial
         onConfirmHelper={handleConfirmHelper}
         onMessage={(applicantId) => onNavigate('messages', { selectedUserId: applicantId })}
       />
+
+      <AlertDialog open={confirmRemoveRoleOpen} onOpenChange={setConfirmRemoveRoleOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              {roleToRemove === 'owner'
+                ? 'Removing owner role will remove owner features. Continue?'
+                : 'Removing helper role will remove helper features. Continue?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setConfirmRemoveRoleOpen(false);
+                setRoleToRemove(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveRole} disabled={removingRole}>
+              {removingRole ? 'Removing...' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

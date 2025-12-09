@@ -87,10 +87,12 @@ export function AuthPage({ onNavigate }: AuthPageProps) {
         toast.success('Welcome back!');
         onNavigate('tasks');
       } else {
-        toast.error(response.message || 'Login failed');
+        // More specific feedback for invalid credentials
+        toast.error('Email or password is incorrect');
       }
     } catch (error) {
-      toast.error('Login failed. Please try again.');
+      // Show consistent message for invalid credentials or unregistered account
+      toast.error('Email or password is incorrect');
     } finally {
       setLoading(false);
     }

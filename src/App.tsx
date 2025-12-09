@@ -141,6 +141,10 @@ function AppContent() {
     if (userLoading) return;
 
     const currentPage = getPathPageMap()[location.pathname] || "landing";
+    const suppressRoleToast = sessionStorage.getItem('suppressRoleToast') === 'true';
+    if (suppressRoleToast) {
+      sessionStorage.removeItem('suppressRoleToast');
+    }
     
     // Check authentication
     if (protectedRoutes.includes(currentPage) && !isAuthenticated) {
@@ -151,13 +155,17 @@ function AppContent() {
     
     // Check role-based access
     if (ownerOnlyRoutes.includes(currentPage) && isAuthenticated && !isOwner()) {
-      toast.error("Only owners can access this page");
+      if (!suppressRoleToast) {
+        toast.error("Only owners can access this page");
+      }
       navigate("/");
       return;
     }
     
     if (helperOnlyRoutes.includes(currentPage) && isAuthenticated && !isHelper()) {
-      toast.error("Only helpers can access this page");
+      if (!suppressRoleToast) {
+        toast.error("Only helpers can access this page");
+      }
       navigate("/");
       return;
     }

@@ -65,6 +65,69 @@ export const addRoleToCurrentUser = async (req, res) => {
 };
 
 /**
+ * Remove a role from the current authenticated user.
+ * If no roles remain after removal, delete the account.
+ * Route: POST /api/users/remove-role
+ */
+export const removeRoleFromCurrentUser = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const userId = req.user.id;
+
+    if (!role || !['owner', 'helper'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be "owner" or "helper"',
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (!user.roles.includes(role)) {
+      return res.json({
+        success: true,
+        data: await User.findById(userId).select('-password'),
+        message: `User does not have the "${role}" role`,
+      });
+    }
+
+    // Remove role
+    user.roles = user.roles.filter(r => r !== role);
+
+    // If no roles remain, delete account
+    if (user.roles.length === 0) {
+      await User.findByIdAndDelete(userId);
+      return res.json({
+        success: true,
+        data: { deleted: true, id: userId },
+        message: 'Account deleted because no roles remain',
+      });
+    }
+
+    await user.save();
+    const updatedUser = await User.findById(userId).select('-password');
+
+    res.json({
+      success: true,
+      data: updatedUser,
+      message: `Successfully removed "${role}" role`,
+    });
+  } catch (error) {
+    console.error('Error removing role:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error removing role',
+    });
+  }
+};
+
+/**
  * Add a role to a user by ID (deprecated - kept for backward compatibility)
  * Allows users to upgrade their role (e.g., owner → helper, helper → owner)
  * Route: PATCH /api/users/:id/add-role

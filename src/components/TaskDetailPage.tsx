@@ -749,12 +749,6 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                     </Badge>
                   </div>
 
-                  <div className="bg-secondary/20 p-4 rounded-2xl">
-                    <div className="text-sm text-muted-foreground mb-1">You'll earn</div>
-                    <div className="text-primary" style={{ fontWeight: 700, fontSize: '36px' }}>{rewardDisplay}</div>
-                    <div className="text-sm text-muted-foreground">per session</div>
-                  </div>
-
                   <div className="space-y-3 mt-auto">
                     {isTaskOwner && task.applicants && (
                       <Button
@@ -1063,12 +1057,6 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
                   </Badge>
                 </div>
 
-                <div className="bg-secondary/20 p-4 rounded-2xl">
-                  <div className="text-sm text-muted-foreground mb-1">You'll earn</div>
-                  <div className="text-primary" style={{ fontWeight: 700, fontSize: '36px' }}>{rewardDisplay}</div>
-                  <div className="text-sm text-muted-foreground">per session</div>
-                </div>
-
                 <div className="space-y-3 mt-auto">
                   {/* In Progress */}
                   {task.status === "in_progress" && (
@@ -1129,23 +1117,78 @@ export function TaskDetailPage({ taskId, onNavigate, returnTo, activeTab }: Task
 
                   {/* Completed */}
                   {task.status === "completed" && (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {reviewStatusLoading ? (
                         <div className="text-sm text-muted-foreground text-center">
                           Loading review status...
                         </div>
-                      ) : hasSubmittedReview ? (
-                        <div className="text-sm text-muted-foreground text-center">
-                          Review submitted.
-                        </div>
                       ) : (
-                        <Button 
-                          size="lg"
-                          className="w-full !bg-primary hover:!bg-primary/90 !text-white rounded-full"
-                          onClick={() => setReviewDialogOpen(true)}
-                        >
-                          Click to Review
-                        </Button>
+                        <>
+                          {/* Review submitted by current user */}
+                          {userReview && (
+                            <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-sm font-semibold">Your Review</h4>
+                                <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`w-4 h-4 ${
+                                        i < userReview.rating
+                                          ? 'text-yellow-500 fill-yellow-500'
+                                          : 'text-gray-300'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              {userReview.comment && (
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  {userReview.comment}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Review received from the other party */}
+                          {receivedReview && (
+                            <div className="bg-accent/5 rounded-lg p-4 border border-accent/20">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-sm font-semibold">
+                                  Review from {receivedReview.reviewerName}
+                                </h4>
+                                <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`w-4 h-4 ${
+                                        i < receivedReview.rating
+                                          ? 'text-yellow-500 fill-yellow-500'
+                                          : 'text-gray-300'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              {receivedReview.comment && (
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  {receivedReview.comment}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Show review button if user hasn't submitted review yet */}
+                          {!hasSubmittedReview && (
+                            <Button 
+                              size="lg"
+                              className="w-full !bg-primary hover:!bg-primary/90 !text-white rounded-full"
+                              onClick={() => setReviewDialogOpen(true)}
+                            >
+                              Click to Review
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
